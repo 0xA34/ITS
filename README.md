@@ -1,4 +1,4 @@
-# Welcome to your Lovable project
+# FRONT-END
 
 Follow these steps:
 
@@ -7,7 +7,7 @@ Follow these steps:
 git clone <YOUR_GIT_URL>
 
 # Step 2: Navigate to the project directory.
-cd <YOUR_PROJECT_NAME>
+cd <frontend>
 
 # Step 3: Install the necessary dependencies.
 npm i
@@ -39,3 +39,21 @@ This project is built with:
 - React
 - shadcn-ui
 - Tailwind CSS
+
+# BACK-END
+```sh
+# Step 1: Clone the repository using the project's Git URL.
+git clone <YOUR_GIT_URL>
+
+# Step 2: Navigate to the project directory.
+cd <backend>
+
+# Step 3: Install 
+pip install -r requirements.txt
+
+# Step 4 run backend
+fastapi dev main.py
+
+uvicorn main:app --reload --host 0.0.0.0 --port 8000
+
+```
