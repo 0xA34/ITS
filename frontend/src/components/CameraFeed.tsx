@@ -2,6 +2,8 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import Hls from "hls.js";
 import type { Camera } from "@/lib/api";
+import CameraActionDialog from "./CameraActionDialog";
+
 
 type CameraFeedProps = {
   camera: Camera;
@@ -98,43 +100,68 @@ export default function CameraFeed({ camera, refreshMs = 12000 }: CameraFeedProp
     }
   }, [isHls, hlsUrl]);
 
+  // Dialog state
+  const [showActionDialog, setShowActionDialog] = useState(false);
+
   return (
-    <div className="relative bg-camera-bg rounded-lg overflow-hidden border border-border transition-all duration-300 hover:border-primary/50">
-      {/* Camera View */}
-      <div className="aspect-video bg-gradient-to-br from-secondary to-camera-bg flex items-center justify-center relative">
-        {!url ? (
-          <div className="text-sm text-muted-foreground">Chưa có URL camera</div>
-        ) : isHls ? (
-          <video
-            ref={videoRef}
-            className="h-full w-full object-cover"
-            controls
-            muted
-            playsInline
-          />
-        ) : (
-          <img src={imgSrc} alt={name} className="h-full w-full object-cover" />
-        )}
-      </div>
+    <>
+      <div
+        onClick={() => setShowActionDialog(true)}
+        className="relative bg-camera-bg rounded-lg overflow-hidden border border-border transition-all duration-300 hover:border-primary/50 cursor-pointer group hover:shadow-lg"
+      >
+        {/* Camera View */}
+        <div className="aspect-video bg-gradient-to-br from-secondary to-camera-bg flex items-center justify-center relative">
+          {!url ? (
+            <div className="text-sm text-muted-foreground">Chưa có URL camera</div>
+          ) : isHls ? (
+            <video
+              ref={videoRef}
+              className="h-full w-full object-cover"
+              controls
+              muted
+              playsInline
+              onClick={(e) => e.stopPropagation()} // Prevent dialog when clicking video controls
+            />
+          ) : (
+            <img src={imgSrc} alt={name} className="h-full w-full object-cover" />
+          )}
 
-      {/* Info */}
-      <div className="bg-card p-3 border-t border-border">
-        <div className="flex items-center justify-between gap-3">
-          <div className="min-w-0">
-            <h3 className="font-semibold text-sm text-foreground truncate">{name}</h3>
-            <p className="text-xs text-muted-foreground truncate">
-              {location ? location : `ID: ${id}`}
-            </p>
+          {/* Hover Overlay Hint */}
+          <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center pointer-events-none">
+            <span className="text-white font-medium bg-black/50 px-3 py-1 rounded-full text-sm backdrop-blur-sm border border-white/20">
+              Click to Open Controls
+            </span>
           </div>
+        </div>
 
-          <div className="text-right shrink-0">
-            <p className="text-xs text-primary font-mono">{now.toLocaleTimeString("vi-VN")}</p>
-            <p className="text-xs text-muted-foreground">
-              {now.toLocaleDateString("vi-VN")}
-            </p>
+        {/* Info */}
+        <div className="bg-card p-3 border-t border-border">
+          <div className="flex items-center justify-between gap-3">
+            <div className="min-w-0">
+              <h3 className="font-semibold text-sm text-foreground truncate">{name}</h3>
+              <p className="text-xs text-muted-foreground truncate">
+                {location ? location : `ID: ${id}`}
+              </p>
+            </div>
+
+            <div className="text-right shrink-0">
+              <p className="text-xs text-primary font-mono">{now.toLocaleTimeString("vi-VN")}</p>
+              <p className="text-xs text-muted-foreground">
+                {now.toLocaleDateString("vi-VN")}
+              </p>
+            </div>
           </div>
         </div>
       </div>
-    </div>
+
+      <CameraActionDialog
+        open={showActionDialog}
+        onOpenChange={setShowActionDialog}
+        camera={camera}
+      />
+    </>
   );
 }
+
+
+
