@@ -4,11 +4,11 @@ from typing import Any
 from app.core.config import settings
 
 # khởi tạo bộ nhớ đệm 
-_cache: list[dir[str, Any]] | None = None # lần đầu lưu nội dung của json để tái sử dụng 
+_cache: list[dict[str, Any]] | None = None # lần đầu lưu nội dung của json để tái sử dụng 
 _cache_mtime: float | None = None # lưu lại thời gian để biết khi nào phải thay đổi để cập nhập lại _cache
 
 
-def _load_json() -> list[dir[str, Any]]:
+def _load_json() -> list[dict[str, Any]]:
     global _cache, _cache_mtime
 
     path = settings.DATA
@@ -48,7 +48,7 @@ def _load_json() -> list[dir[str, Any]]:
 
 class CameraService:
     @staticmethod
-    async def list_camera(skip: int = 50, limit: int = 0) -> tuple[list[dict],int]:
+    async def list_cameras(skip: int = 50, limit: int = 0) -> tuple[list[dict],int]:
         items = _load_json()
         total = len(items) # số lượng camera
         return items[skip: skip + limit], total
@@ -57,7 +57,7 @@ class CameraService:
     async def get_camera(camera_id: str) -> dict | None:
         item = _load_json()
         for cam in item:
-            if cam == camera_id:
+            if cam["id"] == camera_id:
                 return cam
         
         return None
