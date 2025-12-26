@@ -2,6 +2,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from app.core.config import settings
 from app.routes.camera_routes import router as camera_router
+from app.routes.detection_routes import router as detection_router
 
 app = FastAPI()
 
@@ -23,3 +24,4 @@ def health():
     return {"ok": True}
 
 app.include_router(camera_router, prefix=settings.API_PREFIX)
+app.include_router(detection_router, prefix=settings.API_PREFIX)
