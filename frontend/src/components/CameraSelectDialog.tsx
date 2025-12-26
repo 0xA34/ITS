@@ -43,8 +43,9 @@ export default function CameraSelectDialog({
       setLoad({ status: "loading" });
       const data = await fetchCameras();
       setLoad({ status: "success", items: data.items || [] });
-    } catch (e: any) {
-      setLoad({ status: "error", message: e?.message || "Không tải được danh sách camera" });
+    } catch (e) {
+      const message = e instanceof Error ? e.message : "Không tải được danh sách camera";
+      setLoad({ status: "error", message });
     }
   }
 
@@ -112,8 +113,8 @@ export default function CameraSelectDialog({
                 {load.status === "loading"
                   ? "Đang tải danh sách camera..."
                   : load.status === "error"
-                  ? "Tải danh sách camera lỗi"
-                  : `Tổng: ${allCameras.length} camera`}
+                    ? "Tải danh sách camera lỗi"
+                    : `Tổng: ${allCameras.length} camera`}
               </div>
 
               <Button
@@ -137,11 +138,10 @@ export default function CameraSelectDialog({
                 {allCameras.map((camera) => (
                   <div
                     key={camera.id}
-                    className={`flex items-center gap-4 p-3 rounded-lg border transition-all cursor-pointer ${
-                      tempSelected.includes(camera.id)
+                    className={`flex items-center gap-4 p-3 rounded-lg border transition-all cursor-pointer ${tempSelected.includes(camera.id)
                         ? "border-primary bg-primary/10"
                         : "border-border bg-secondary/50 hover:bg-secondary"
-                    }`}
+                      }`}
                     onClick={() => handleToggleCamera(camera.id)}
                   >
                     <Checkbox
