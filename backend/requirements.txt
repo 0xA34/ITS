@@ -1,0 +1,14 @@
+--index-url https://download.pytorch.org/whl/cu124
+torch
+torchvision
+torchaudio
+fastapi
+uvicorn
+python-multipart
+opencv-python
+ultralytics
+numpy
+pydantic
+pydantic-settings
+python-dotenv
+requests
