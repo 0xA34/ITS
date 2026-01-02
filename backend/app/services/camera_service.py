@@ -2,6 +2,7 @@ import json
 import os
 from typing import Any
 from app.core.config import settings
+from urllib.parse import urlparse, parse_qs
 
 # khởi tạo bộ nhớ đệm 
 _cache: list[dir[str, Any]] | None = None # lần đầu lưu nội dung của json để tái sử dụng 
@@ -34,12 +35,29 @@ def _load_json() -> list[dir[str, Any]]:
         id = item.get("_id", "")
         if isinstance(id, dict) and "$oid" in id:
             clean_id = id["$oid"]
+        else:
+            clean_id = id
 
+        name = item.get("name", "")
+        url_raw = item.get("url", "")
+        url_clean = url_raw # Giá trị mặc định
+        if name == "Tp. HCM":
+            try:
+                parsed_url = urlparse(url_raw)
+                query_params = parse_qs(parsed_url.query)
+                
+                cam_id_list = query_params.get("camId")
+                if cam_id_list:
+                    cam_id = cam_id_list[0]
+                    url_clean = f"https://giaothong.hochiminhcity.gov.vn/render/ImageHandler.ashx?id={cam_id}"
+            except Exception:
+                url_clean = url_raw
+    
         normalized.append({
             "id": clean_id,
             "name": item.get("name", ""),
             "location": item.get("location", None),
-            "url": item.get("url", ""),
+            "url": url_clean,
         })
     
     _cache = normalized
