@@ -10,10 +10,27 @@ git clone <YOUR_GIT_URL>
 cd <frontend>
 
 # Step 3: Install the necessary dependencies.
-npm i
+npm install / bun install
 
 # Step 4: Start the development server with auto-reloading and an instant preview.
-npm run dev
+npm run dev / bun run dev
+```
+# BACK-END
+```sh
+# Step 1: Clone the repository using the project's Git URL.
+git clone <YOUR_GIT_URL>
+
+# Step 2: Navigate to the project directory.
+cd <backend>
+
+# Step 3: Install 
+pip install -r requirements.txt
+
+# Step 4 run backend
+fastapi dev main.py
+
+uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
+
 ```
 
 **Edit a file directly in GitHub**
@@ -40,20 +57,4 @@ This project is built with:
 - shadcn-ui
 - Tailwind CSS
 
-# BACK-END
-```sh
-# Step 1: Clone the repository using the project's Git URL.
-git clone <YOUR_GIT_URL>
 
-# Step 2: Navigate to the project directory.
-cd <backend>
-
-# Step 3: Install 
-pip install -r requirements.txt
-
-# Step 4 run backend
-fastapi dev main.py
-
-uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
-
-```
