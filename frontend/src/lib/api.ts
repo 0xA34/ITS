@@ -85,7 +85,59 @@ export interface TrafficStats {
   parking_violations: ParkingViolation[];
   zones_occupancy: Record<string, number>;
 }
+//////////////// search
+export type SearchSyncResponse = {
+  mode: "sync";
+  status: "success" | "empty";
+  source?: any;
+  detections: Array<any>;
+  summary?: Record<string, number>;
+  annotated?: { jpegBase64: string; width: number; height: number } | null;
+};
 
+export type SearchAsyncResponse = {
+  mode: "async";
+  status: "accepted";
+  jobId: string;
+  source: { kind: "video"; url: string; id?: string; name?: string };
+};
+
+export type SearchResponse = SearchSyncResponse | SearchAsyncResponse;
+
+export async function postSearch(text: string, files: File[]): Promise<SearchResponse> {
+  const fd = new FormData();
+  fd.append("text", text ?? "");
+
+  // backend nhận "files" (list)
+  for (const f of files) fd.append("files", f);
+
+  const res = await fetch("http://localhost:8000/api/search", {
+    method: "POST",
+    body: fd,
+  });
+
+  if (!res.ok) {
+    const msg = await res.text().catch(() => "");
+    throw new Error(`POST /api/search failed: ${res.status} ${msg}`);
+  }
+
+  return res.json();
+}
+
+export async function uploadImage(file: File) {
+  const fd = new FormData();
+  fd.append("file", file);
+
+  const res = await fetch("http://localhost:8000/api/upload-image", {
+    method: "POST",
+    body: fd,
+  });
+
+  if (!res.ok) throw new Error("upload failed");
+  return res.json(); // { url: "..."}
+}
+
+////////////////
 export async function detectVehicles(
   imageUrl: string,
   cameraId?: string,
