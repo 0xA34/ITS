@@ -79,10 +79,13 @@ This survey aims to:
 | Property | Value |
 |----------|-------|
 | Dataset | COCO val2017 |
-| Total Images | 2,968 |
-| Total Annotations | 14,323 |
+| Total COCO val2017 Images | 5,000 |
+| **Images with Vehicle Classes** | **2,968 (59.4%)** |
+| Total Vehicle Annotations | 14,323 |
 | Vehicle Classes | 6 (person, bicycle, car, motorcycle, bus, truck) |
 | Image Resolution | Variable (resized to 640×640 for inference) |
+
+**Dataset Filtering:** We evaluate only on the 2,968 images (out of 5,000 total) that contain at least one vehicle-related object. Images with only non-transportation objects (e.g., food, indoor scenes, sports equipment) are excluded as they are irrelevant to ITS applications.
 
 #### Class Subset Justification
 
