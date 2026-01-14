@@ -5,6 +5,7 @@ app/preTrainedModels/*.onnx
 app/preTrainedModels/*.engine
 app/data/data/coco/*.jpg
 app/data/zones/*
+preTrainedModels/*.zip
 .idea/
 *.pt
 *.onnx
