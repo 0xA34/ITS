@@ -30,7 +30,7 @@ const ZONE_COLORS = [
   "#8800FF",
 ];
 
-type ZoneType = "normal" | "parking" | "traffic_light" | "stop_line";
+type ZoneType = "normal" | "parking" | "traffic_light" | "stop_line" | "counting_line";
 
 export default function PolygonEditor({
   zones,
@@ -87,12 +87,18 @@ export default function PolygonEditor({
       }
       return "rgba(255, 255, 255, 0.3)"; // White/transparent when green
     }
+    if (zone.is_counting_line) {
+      return "rgba(255, 255, 0, 0.2)"; // Cyan/yellow transparent
+    }
     return zone.is_parking_zone
       ? "rgba(255, 0, 0, 0.25)"
       : "rgba(0, 255, 0, 0.25)";
   };
 
   const getZoneStrokeColor = (zone: ZonePolygon) => {
+    if (zone.is_counting_line) {
+      return "#00FFFF"; // Cyan for counting lines
+    }
     if (zone.is_stop_line) {
       const linkedLight = zones.find(
         (z) => z.id === zone.linked_traffic_light_id,
@@ -204,7 +210,9 @@ export default function PolygonEditor({
             ? "#FF0000"
             : zoneType === "stop_line"
               ? "#FFFFFF"
-              : "#00FF00";
+              : zoneType === "counting_line"
+                ? "#00FFFF"
+                : "#00FF00";
       ctx.strokeStyle = strokeColor;
       ctx.lineWidth = 3;
       ctx.setLineDash([8, 4]);
@@ -251,7 +259,9 @@ export default function PolygonEditor({
   );
 
   const handleSaveZone = useCallback(() => {
-    if (currentPoints.length < 3) return;
+    // For counting lines, only need 2 points. For other zones, need at least 3
+    const minPoints = zoneType === "counting_line" ? 2 : 3;
+    if (currentPoints.length < minPoints) return;
 
     // Validate stop_line must have linked traffic light
     if (zoneType === "stop_line" && !linkedTrafficLightId) {
@@ -269,12 +279,16 @@ export default function PolygonEditor({
       is_stop_line: zoneType === "stop_line",
       linked_traffic_light_id:
         zoneType === "stop_line" ? linkedTrafficLightId : null,
+      is_counting_line: zoneType === "counting_line",
+      counting_direction: "both",
       color:
         zoneType === "traffic_light"
           ? "#FFFF00"
           : zoneType === "stop_line"
             ? "#FFFFFF"
-            : ZONE_COLORS[zones.length % ZONE_COLORS.length],
+            : zoneType === "counting_line"
+              ? "#00FFFF"
+              : ZONE_COLORS[zones.length % ZONE_COLORS.length],
     };
 
     onZoneAdd(zone);
@@ -369,6 +383,7 @@ export default function PolygonEditor({
               <option value="parking">🅿️ Parking</option>
               <option value="traffic_light">🚦 Traffic Light</option>
               <option value="stop_line">🚧 Stop Line</option>
+              <option value="counting_line">🔢 Counting Line</option>
             </select>
 
             {/* Show traffic light selector when stop_line is selected */}

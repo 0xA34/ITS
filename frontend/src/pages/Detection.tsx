@@ -14,6 +14,7 @@ import {
     type DetectionResult,
     type ZonePolygon,
     type ParkingViolation,
+    type LineCounts,
 } from "@/lib/api";
 
 const API_BASE =
@@ -49,6 +50,24 @@ export default function DetectionPage() {
     const [frameSize, setFrameSize] = useState({ width: 1920, height: 1080 });
     const [timestamp, setTimestamp] = useState(Date.now());
     const [syncedFrame, setSyncedFrame] = useState<string | null>(null);
+    const [currentModel, setCurrentModel] = useState<string>("");
+    const [lineCounts, setLineCounts] = useState<Record<string, LineCounts>>({});
+
+    const [classFilter, setClassFilter] = useState<Record<string, boolean>>({
+        person: true,
+        car: true,
+        motorcycle: true,
+        bus: true,
+        truck: true,
+        bicycle: true,
+    });
+
+    const [featureFilter, setFeatureFilter] = useState<Record<string, boolean>>({
+        traffic_light: true,
+        parking_zone: true,
+        counting_line: true,
+        stop_line: true,
+    });
 
     const detectIntervalRef = useRef<number | null>(null);
     const urlLower = cameraUrl.toLowerCase();
@@ -77,6 +96,18 @@ export default function DetectionPage() {
         if (!cameraId) return;
         getZones(cameraId).then((data) => setZones(data.zones || [])).catch(console.error);
     }, [cameraId]);
+
+    // Fetch current model info when page loads
+    useEffect(() => {
+        fetch(`${API_BASE}/api/benchmark/models/current`)
+            .then(res => res.json())
+            .then(data => {
+                if (data.name) {
+                    setCurrentModel(data.name);
+                }
+            })
+            .catch(err => console.error("Failed to fetch current model:", err));
+    }, []);
 
     useEffect(() => {
         if (!isM3u8) {
@@ -166,6 +197,9 @@ export default function DetectionPage() {
                 setViolations(response.violations || []);
                 setFrameSize({ width: response.result.frame_width, height: response.result.frame_height });
                 setDebugInfo(`Detected: ${response.result.total_count} vehicles`);
+                if (response.model_info) {
+                    setCurrentModel(response.model_info.model_name || response.model_info.model_key);
+                }
             } else {
                 setDebugInfo(`Error: ${response.error || "No result"}`);
             }
@@ -175,78 +209,107 @@ export default function DetectionPage() {
         }
     }, [cameraUrl, cameraId]);
 
-    const runDetectionForVideo = useCallback(async () => {
-        if (!cameraId || !cameraUrl) return;
+    // Capture current frame from video player
+    const captureFrameFromVideo = useCallback(() => {
+        const video = videoRef.current;
+        const canvas = canvasRef.current;
 
-        console.log("Detecting from video URL:", cameraUrl);
+        if (!video || !canvas || video.readyState < 2) {
+            console.log("Video not ready for capture");
+            return null;
+        }
+
+        try {
+            canvas.width = video.videoWidth || 1280;
+            canvas.height = video.videoHeight || 720;
+            const ctx = canvas.getContext('2d');
+
+            if (!ctx) return null;
+
+            ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+            const dataUrl = canvas.toDataURL('image/jpeg', 0.85);
+            return dataUrl;
+        } catch (e) {
+            console.error("Failed to capture frame:", e);
+            return null;
+        }
+    }, []);
+
+    const runDetectionForVideo = useCallback(async () => {
+        if (!cameraId) return;
+
+        // Capture current frame from video player
+        const frameDataUrl = captureFrameFromVideo();
+        if (!frameDataUrl) {
+            setDebugInfo("Waiting for video to load...");
+            return;
+        }
+
+        console.log("Detecting from captured video frame");
         setDebugInfo("Detecting from video...");
 
         try {
-            const response = await fetch(`${API_BASE}/api/detection/detect-video`, {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({
-                    video_url: cameraUrl,
-                    camera_id: cameraId,
-                    include_zones: true,
-                }),
-            });
-            const data = await response.json();
-            console.log("Video detection response:", data);
-            if (data.success && data.result) {
-                setResult(data.result);
-                setViolations(data.violations || []);
-                setFrameSize({ width: data.result.frame_width, height: data.result.frame_height });
-                setDebugInfo(`Detected: ${data.result.total_count} vehicles (${data.result.processing_time_ms.toFixed(0)}ms)`);
+            const response = await detectVehicles(frameDataUrl, cameraId, true);
+            console.log("Video detection response:", response);
+            if (response.success && response.result) {
+                setResult(response.result);
+                setViolations(response.violations || []);
+                setFrameSize({ width: response.result.frame_width, height: response.result.frame_height });
+                setDebugInfo(`Detected: ${response.result.total_count} vehicles (${response.result.processing_time_ms.toFixed(0)}ms)`);
+                if (response.model_info) {
+                    setCurrentModel(response.model_info.model_name || response.model_info.model_key);
+                }
             } else {
-                setDebugInfo(`Error: ${data.error || "No result"}`);
+                setDebugInfo(`Error: ${response.error || "No result"}`);
             }
         } catch (e: any) {
             console.error("Video detection failed:", e);
             setDebugInfo(`Error: ${e.message}`);
         }
-    }, [cameraId, cameraUrl]);
+    }, [cameraId, captureFrameFromVideo]);
 
     useEffect(() => {
         if (isDetecting) {
             if (isVideo) {
-                if (isM3u8) {
+                // ✅ Use WebSocket for ALL videos (HLS + uploaded MP4)
                 const ws = new WebSocket(`${WS_BASE}/api/detection/video-stream/${encodeURIComponent(cameraId)}`);
                 wsRef.current = ws;
 
                 ws.onopen = () => {
-                    console.log("WebSocket connected");
+                    console.log("WebSocket connected for video detection");
                     setDebugInfo("Connecting to video stream...");
-                    ws.send(JSON.stringify({ video_url: cameraUrl, send_frame: true }));
+                    const activeClasses = Object.entries(classFilter).filter(([_, v]) => v).map(([k]) => k);
+                    ws.send(JSON.stringify({
+                        video_url: cameraUrl,
+                        send_frame: true,
+                        class_filter: activeClasses.length < 6 ? activeClasses : null,
+                        feature_filter: featureFilter
+                    }));
                 };
 
                 ws.onmessage = (event) => {
                     try {
-                    const data = JSON.parse(event.data);
-                    if (data.type === "detection_result") {
-                        setResult(data.result);
-                        setViolations(data.violations || []);
-                        setFrameSize({ width: data.result.frame_width, height: data.result.frame_height });
-                        setDebugInfo(`${data.result.total_count} vehicles (${data.result.processing_time_ms.toFixed(0)}ms)`);
-                        if (data.frame) setSyncedFrame(data.frame);
-                    } else if (data.type === "connected") {
-                        setDebugInfo("Video stream connected!");
-                    } else if (data.type === "error") {
-                        setDebugInfo(`Error: ${data.error}`);
-                    }
+                        const data = JSON.parse(event.data);
+                        if (data.type === "detection_result") {
+                            setResult(data.result);
+                            setViolations(data.violations || []);
+                            setFrameSize({ width: data.result.frame_width, height: data.result.frame_height });
+                            setDebugInfo(`${data.result.total_count} vehicles (${data.result.processing_time_ms.toFixed(0)}ms)`);
+                            if (data.frame) setSyncedFrame(data.frame);
+                            if (data.line_counts) setLineCounts(data.line_counts);
+                        } else if (data.type === "connected") {
+                            setDebugInfo("Video stream connected!");
+                        } else if (data.type === "error") {
+                            setDebugInfo(`Error: ${data.error}`);
+                        }
                     } catch (e) {
-                    console.error("WS message parse error:", e);
+                        console.error("WS message parse error:", e);
                     }
                 };
 
                 ws.onerror = () => setDebugInfo("WebSocket error");
                 ws.onclose = () => console.log("WebSocket closed");
-                } else {
-                // ✅ mp4 / api/media => dùng endpoint detect-video
-                runDetectionForVideo();
-                detectIntervalRef.current = window.setInterval(runDetectionForVideo, 3000);
-                }
-            
+
             } else {
                 runDetectionForImage();
                 detectIntervalRef.current = window.setInterval(runDetectionForImage, 3000);
@@ -271,7 +334,7 @@ export default function DetectionPage() {
             }
             if (detectIntervalRef.current) clearInterval(detectIntervalRef.current);
         };
-    },[isDetecting, isVideo, isM3u8, cameraId, cameraUrl, runDetectionForImage, runDetectionForVideo]);
+    }, [isDetecting, isVideo, isM3u8, cameraId, cameraUrl, runDetectionForImage, runDetectionForVideo]);
 
 
     const handleVideoLoad = useCallback(() => {
@@ -317,6 +380,20 @@ export default function DetectionPage() {
         }
     }, [cameraId, zones]);
 
+    const handleClassFilterToggle = useCallback((className: string) => {
+        setClassFilter(prev => {
+            const newFilter = { ...prev, [className]: !prev[className] };
+            if (wsRef.current && wsRef.current.readyState === WebSocket.OPEN) {
+                const activeClasses = Object.entries(newFilter).filter(([_, v]) => v).map(([k]) => k);
+                wsRef.current.send(JSON.stringify({
+                    type: "update_class_filter",
+                    class_filter: activeClasses.length < 6 ? activeClasses : null
+                }));
+            }
+            return newFilter;
+        });
+    }, []);
+
     if (!cameraUrl) {
         return (
             <div className="min-h-screen bg-background flex items-center justify-center">
@@ -338,6 +415,11 @@ export default function DetectionPage() {
                         {isM3u8 ? "🎥 Live Stream" : "📷 Snapshot"}
                     </span>
                     <span className="text-xs text-green-500">{frameSize.width}x{frameSize.height}</span>
+                    {currentModel && (
+                        <span className="text-xs px-2 py-1 bg-blue-600/20 text-blue-400 rounded border border-blue-500/30">
+                            🤖 {currentModel}
+                        </span>
+                    )}
                     <div className="flex-1" />
                     <Button
                         variant={isDetecting ? "destructive" : "default"}
@@ -351,6 +433,81 @@ export default function DetectionPage() {
                         {showDashboard ? "Hide Stats" : "Stats"}
                     </Button>
                 </div>
+
+                {/* Class Filter Toggle Buttons */}
+                <div className="flex items-center gap-2 flex-wrap mt-2">
+                    <span className="text-xs text-muted-foreground">Filter:</span>
+                    {Object.entries(classFilter).map(([cls, enabled]) => {
+                        const icons: Record<string, string> = {
+                            person: "👤",
+                            car: "🚗",
+                            motorcycle: "🏍️",
+                            bus: "🚌",
+                            truck: "🚚",
+                            bicycle: "🚲",
+                        };
+                        const labels: Record<string, string> = {
+                            person: "Person",
+                            car: "Car",
+                            motorcycle: "Motorbike",
+                            bus: "Bus",
+                            truck: "Truck",
+                            bicycle: "Bicycle",
+                        };
+                        return (
+                            <button
+                                key={cls}
+                                onClick={() => handleClassFilterToggle(cls)}
+                                className={`px-3 py-1.5 text-xs rounded-full border transition-all ${enabled
+                                    ? "bg-green-600/20 border-green-500 text-green-400"
+                                    : "bg-gray-800/50 border-gray-600 text-gray-500 opacity-60"
+                                    }`}
+                                title={enabled ? `Detecting ${labels[cls]}` : `Not detecting ${labels[cls]}`}
+                            >
+                                {icons[cls]} {labels[cls]}
+                            </button>
+                        );
+                    })}
+
+                    <span className="text-gray-600 mx-2">|</span>
+                    <span className="text-xs text-muted-foreground">Features:</span>
+                    {Object.entries(featureFilter).map(([feature, enabled]) => {
+                        const icons: Record<string, string> = {
+                            traffic_light: "🚦",
+                            parking_zone: "🅿️",
+                            counting_line: "🔢",
+                            stop_line: "🚧",
+                        };
+                        const labels: Record<string, string> = {
+                            traffic_light: "Traffic Light",
+                            parking_zone: "Parking Zone",
+                            counting_line: "Counting Line",
+                            stop_line: "Stop Line",
+                        };
+                        return (
+                            <button
+                                key={feature}
+                                onClick={() => {
+                                    const newFilter = { ...featureFilter, [feature]: !featureFilter[feature] };
+                                    setFeatureFilter(newFilter);
+                                    if (wsRef.current && wsRef.current.readyState === WebSocket.OPEN) {
+                                        wsRef.current.send(JSON.stringify({
+                                            type: "update_feature_filter",
+                                            feature_filter: newFilter
+                                        }));
+                                    }
+                                }}
+                                className={`px-3 py-1.5 text-xs rounded-full border transition-all ${enabled
+                                    ? "bg-blue-600/20 border-blue-500 text-blue-400"
+                                    : "bg-gray-800/50 border-gray-600 text-gray-500 opacity-60"
+                                    }`}
+                                title={enabled ? `Show ${labels[feature]}` : `Hide ${labels[feature]}`}
+                            >
+                                {icons[feature]} {labels[feature]}
+                            </button>
+                        );
+                    })}
+                </div>
             </header>
 
             <div className="flex p-4 gap-4">
@@ -360,7 +517,7 @@ export default function DetectionPage() {
                         className="relative bg-black rounded-lg overflow-hidden"
                         style={{ aspectRatio: "16/9" }}
                     >
-                        {isM3u8 ? (
+                        {isVideo ? (
                             isDetecting && syncedFrame ? (
                                 <img
                                     src={syncedFrame}
@@ -374,8 +531,10 @@ export default function DetectionPage() {
                                     autoPlay
                                     muted
                                     playsInline
+                                    loop
                                     crossOrigin="anonymous"
                                     onLoadedMetadata={handleVideoLoad}
+                                    src={isM3u8 ? undefined : cameraUrl}
                                 />
                             )
                         ) : (
@@ -389,13 +548,13 @@ export default function DetectionPage() {
                                     (e.target as HTMLImageElement).src =
                                         "data:image/svg+xml;utf8," +
                                         encodeURIComponent(
-                                        `<svg xmlns='http://www.w3.org/2000/svg' width='640' height='360'>
+                                            `<svg xmlns='http://www.w3.org/2000/svg' width='640' height='360'>
                                             <rect width='100%' height='100%' fill='#111827'/>
                                             <text x='50%' y='50%' fill='#e5e7eb' font-size='28' font-family='Arial'
                                             dominant-baseline='middle' text-anchor='middle'>Camera Offline</text>
                                         </svg>`
                                         );
-                                    }}
+                                }}
                             />
                         )}
 
@@ -442,6 +601,7 @@ export default function DetectionPage() {
                             violations={violations}
                             zones={zones}
                             isConnected={isDetecting}
+                            lineCounts={lineCounts}
                         />
                     </div>
                 )}

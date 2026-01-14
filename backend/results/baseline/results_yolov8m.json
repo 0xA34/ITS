@@ -1,0 +1,47 @@
+{
+  "model": {
+    "name": "yolov8m",
+    "path": "yolov8m.pt"
+  },
+  "accuracy": {
+    "mAP@0.5": 0.632880448103239,
+    "mAP@0.75": 0.5124420207075868,
+    "mAP@[.5:.95]": 0.4726899823736203,
+    "precision": 0.7976452715533612,
+    "recall": 0.7461806295743623,
+    "f1_score": 0.7710551435494528
+  },
+  "per_class": {
+    "ap": {
+      "person": 0.7322359202261659,
+      "bicycle": 0.5387933003738261,
+      "car": 0.6166408253899469,
+      "motorcycle": 0.6770821901338251,
+      "bus": 0.7668377636564341,
+      "truck": 0.465692688839235
+    },
+    "precision": {},
+    "recall": {}
+  },
+  "per_size": {
+    "mAP_small": 0.0,
+    "mAP_medium": 0.0,
+    "mAP_large": 0.0
+  },
+  "speed": {
+    "fps": 58.23255122822419,
+    "latency_ms": 17.172525999776553,
+    "latency_std_ms": 0.38774220626120964,
+    "throughput": 58.13618867279579
+  },
+  "dataset": {
+    "name": "COCODataset",
+    "num_images": 2968,
+    "num_ground_truths": 14323,
+    "num_predictions": 13165
+  },
+  "meta": {
+    "evaluation_time_seconds": 107.46872448921204,
+    "timestamp": "2026-01-09T17:08:00.593537"
+  }
+}

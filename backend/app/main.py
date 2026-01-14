@@ -4,6 +4,7 @@ from app.core.config import settings
 from app.routes.camera_routes import router as camera_router
 from app.routes.detection_routes import router as detection_router
 from app.routes.proxy_routes import router as proxy_router
+from app.routes.benchmark_routes import router as benchmark_router
 from app.routes.search_routes import router as search_router
 from app.routes.media_routes import router as media_router
 from app.routes.upload_detect_routes import router as upload_detect_router
@@ -35,6 +36,8 @@ def health():
 app.include_router(camera_router, prefix=settings.API_PREFIX)
 app.include_router(detection_router, prefix=settings.API_PREFIX)
 app.include_router(proxy_router, prefix=settings.API_PREFIX)
+app.include_router(benchmark_router, prefix=settings.API_PREFIX)
+
 app.include_router(search_router, prefix=settings.API_PREFIX)
 app.include_router(media_router, prefix=settings.API_PREFIX)
 app.include_router(upload_detect_router, prefix=settings.API_PREFIX)

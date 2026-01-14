@@ -17,6 +17,8 @@ from app.models.detection import (
 from app.services.detection_service import DetectionService
 from app.services.tracker_service import TrackerManager
 from app.services.zone_service import ZoneService
+from app.services.model_manager import get_model_manager
+from app.services.counting_service import CountingManager
 from fastapi import APIRouter, HTTPException, WebSocket, WebSocketDisconnect
 from fastapi.responses import JSONResponse
 
@@ -56,7 +58,14 @@ async def detect_vehicles(request: DetectRequest):
                 result.detections, zones, request.camera_id
             )
 
-        return DetectResponse(success=True, result=result, violations=violations)
+        # Get current model info
+        manager = get_model_manager()
+        model_info = {
+            "model_key": manager.current_model_key,
+            "model_name": manager.current_model_info.name,
+        }
+
+        return DetectResponse(success=True, result=result, violations=violations, model_info=model_info)
     except Exception as e:
         return DetectResponse(success=False, error=str(e))
 
@@ -286,6 +295,8 @@ async def video_detection_stream(websocket: WebSocket, camera_id: str):
         data = await websocket.receive_json()
         video_url = data.get("video_url")
         send_frame = data.get("send_frame", True)
+        class_filter = data.get("class_filter")  # Optional: list of class names to detect
+        feature_filter = data.get("feature_filter")  # Optional: dict of feature visibility
 
         if not video_url:
             await websocket.send_json({"type": "error", "error": "video_url required"})
@@ -325,6 +336,10 @@ async def video_detection_stream(websocket: WebSocket, camera_id: str):
                     break
                 if msg.get("type") == "update_zones":
                     zones = await ZoneService.get_zones(camera_id)
+                if msg.get("type") == "update_class_filter":
+                    class_filter = msg.get("class_filter")
+                if msg.get("type") == "update_feature_filter":
+                    feature_filter = msg.get("feature_filter")
             except asyncio.TimeoutError:
                 pass
             except:
@@ -338,7 +353,8 @@ async def video_detection_stream(websocket: WebSocket, camera_id: str):
                 continue
 
             result = await DetectionService.detect_from_frame(
-                frame=frame, camera_id=camera_id, use_tracking=True
+                frame=frame, camera_id=camera_id, use_tracking=True,
+                class_filter=class_filter
             )
 
             if result:
@@ -364,6 +380,13 @@ async def video_detection_stream(websocket: WebSocket, camera_id: str):
                     )
                 )
 
+                # Process counting lines
+                counting_lines = [z for z in zones if z.is_counting_line]
+                counting_manager = CountingManager.get_instance(camera_id)
+                counting_records, line_counts = counting_manager.update(
+                    result.detections, counting_lines
+                )
+
                 violation_ids = set(v.track_id for v in violations)
                 red_light_ids = set(v.track_id for v in red_light_violations)
 
@@ -371,7 +394,22 @@ async def video_detection_stream(websocket: WebSocket, camera_id: str):
                 traffic_light_map = {z.id: z for z in zones if z.is_traffic_light}
 
                 for zone in zones:
-                    if len(zone.points) >= 3:
+                    if len(zone.points) >= 3 or (zone.is_counting_line and len(zone.points) >= 2):
+                        # Check feature filter
+                        show_zone = True
+                        if feature_filter:
+                            if zone.is_traffic_light and not feature_filter.get("traffic_light", True):
+                                show_zone = False
+                            elif zone.is_parking_zone and not feature_filter.get("parking_zone", True):
+                                show_zone = False
+                            elif zone.is_counting_line and not feature_filter.get("counting_line", True):
+                                show_zone = False
+                            elif zone.is_stop_line and not feature_filter.get("stop_line", True):
+                                show_zone = False
+                        
+                        if not show_zone:
+                            continue
+                            
                         pts = np.array(
                             [[int(p.x), int(p.y)] for p in zone.points], np.int32
                         )
@@ -418,6 +456,33 @@ async def video_detection_stream(websocket: WebSocket, camera_id: str):
                                 color,
                                 2,
                             )
+                        elif zone.is_counting_line:
+                            # Counting line - draw as dashed cyan line
+                            color = (255, 255, 0)  # Cyan in BGR
+                            cv2.line(
+                                frame,
+                                (int(zone.points[0].x), int(zone.points[0].y)),
+                                (int(zone.points[1].x), int(zone.points[1].y)),
+                                color,
+                                3
+                            )
+
+                            # Get count for this line
+                            count_text = "0"
+                            if zone.id in line_counts:
+                                line_count = line_counts[zone.id]
+                                count_text = f"{line_count.total} ({line_count.count_in}↓/{line_count.count_out}↑)"
+
+                            label = f"🔢 {zone.name}: {count_text}"
+                            cv2.putText(
+                                frame,
+                                label,
+                                (int(zone.points[0].x), int(zone.points[0].y) - 10),
+                                cv2.FONT_HERSHEY_SIMPLEX,
+                                0.7,
+                                color,
+                                2,
+                            )
                         else:
                             color = (0, 0, 255) if zone.is_parking_zone else (0, 255, 0)
                             cv2.polylines(frame, [pts], True, color, 2)
@@ -450,11 +515,13 @@ async def video_detection_stream(websocket: WebSocket, camera_id: str):
                         frame, (x1, y1), (x2, y2), color, 2 if not is_violation else 3
                     )
 
-                    label = (
-                        f"#{det.track_id} {det.class_name}"
-                        if det.track_id
-                        else det.class_name
-                    )
+                    # Add confidence score to label (as percentage)
+                    conf_percent = int(det.confidence * 100)
+                    if det.track_id:
+                        label = f"#{det.track_id} {det.class_name} {conf_percent}%"
+                    else:
+                        label = f"{det.class_name} {conf_percent}%"
+
                     if is_red_light_violation:
                         label = f"⚠️ RED LIGHT! {label}"
                     label_size, _ = cv2.getTextSize(
@@ -484,6 +551,8 @@ async def video_detection_stream(websocket: WebSocket, camera_id: str):
                     "red_light_violations": [
                         v.model_dump() for v in red_light_violations
                     ],
+                    "counting_records": [r.model_dump() for r in counting_records],
+                    "line_counts": {line_id: counts.model_dump() for line_id, counts in line_counts.items()},
                     "timestamp": datetime.now().isoformat(),
                 }
 
@@ -496,7 +565,7 @@ async def video_detection_stream(websocket: WebSocket, camera_id: str):
 
                 await websocket.send_json(response_data)
 
-            await asyncio.sleep(0.05)
+            await asyncio.sleep(0.033)  # ~30 FPS for smoother real-time detection
 
         cap.release()
         await websocket.close()
@@ -508,3 +577,29 @@ async def video_detection_stream(websocket: WebSocket, camera_id: str):
             await websocket.send_json({"type": "error", "error": str(e)})
         except:
             pass
+
+
+@router.get("/counting/{camera_id}")
+async def get_counting_stats(camera_id: str):
+    """Get counting statistics for a camera."""
+    manager = CountingManager.get_instance(camera_id)
+    counts = manager.get_counts()
+    return {
+        "camera_id": camera_id,
+        "counts": {line_id: counts[line_id].model_dump() for line_id in counts},
+    }
+
+
+@router.post("/counting/{camera_id}/reset")
+async def reset_counting(camera_id: str):
+    """Reset counting statistics for a camera."""
+    manager = CountingManager.get_instance(camera_id)
+    manager.reset_counts()
+    return {"success": True, "message": f"Counting reset for camera {camera_id}"}
+
+
+@router.delete("/counting/{camera_id}")
+async def clear_counting(camera_id: str):
+    """Clear all counting data for a camera."""
+    CountingManager.reset(camera_id)
+    return {"success": True, "message": f"Counting data cleared for camera {camera_id}"}

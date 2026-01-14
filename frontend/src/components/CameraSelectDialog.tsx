@@ -66,7 +66,11 @@ export default function CameraSelectDialog({
   };
 
   const handleSave = () => {
+    console.log("=== SAVE BUTTON CLICKED ===");
+    console.log("tempSelected IDs:", tempSelected);
+    console.log("allCameras:", allCameras);
     const newCameras = allCameras.filter((cam) => tempSelected.includes(cam.id));
+    console.log("Filtered cameras to save:", newCameras);
     onCamerasChange(newCameras);
     onOpenChange(false);
   };
@@ -171,15 +175,6 @@ export default function CameraSelectDialog({
                 )}
               </div>
             )}
-
-            <div className="flex justify-end gap-2 mt-4 pt-4 border-t border-border">
-              <Button variant="outline" onClick={() => onOpenChange(false)} className="border-border">
-                Hủy
-              </Button>
-              <Button onClick={handleSave} className="bg-primary hover:bg-primary/90">
-                Lưu thay đổi
-              </Button>
-            </div>
           </TabsContent>
 
           {/* Tab 2: Camera đã chọn */}
@@ -229,6 +224,28 @@ export default function CameraSelectDialog({
             )}
           </TabsContent>
         </Tabs>
+
+        {/* Footer với nút Lưu */}
+        <div className="flex items-center justify-between pt-4 border-t border-border">
+          <p className="text-sm text-muted-foreground">
+            Đã chọn: {tempSelected.length} camera
+          </p>
+          <div className="flex gap-2">
+            <Button
+              variant="outline"
+              onClick={() => onOpenChange(false)}
+              className="border-border"
+            >
+              Hủy
+            </Button>
+            <Button
+              onClick={handleSave}
+              className="bg-primary hover:bg-primary/90"
+            >
+              Lưu thay đổi
+            </Button>
+          </div>
+        </div>
       </DialogContent>
     </Dialog>
   );
