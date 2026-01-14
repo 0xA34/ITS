@@ -5,6 +5,8 @@ app/preTrainedModels/*.onnx
 app/preTrainedModels/*.engine
 app/data/data/coco/*.jpg
 app/data/zones/*
+app/data/ITS.link.json
+app/data/ITS.link.csv
 preTrainedModels/*.zip
 .idea/
 *.pt

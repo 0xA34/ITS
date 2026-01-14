@@ -14,6 +14,7 @@ import {
     type DetectionResult,
     type ZonePolygon,
     type ParkingViolation,
+    type LineCounts,
 } from "@/lib/api";
 
 const API_BASE =
@@ -49,6 +50,8 @@ export default function DetectionPage() {
     const [frameSize, setFrameSize] = useState({ width: 1920, height: 1080 });
     const [timestamp, setTimestamp] = useState(Date.now());
     const [syncedFrame, setSyncedFrame] = useState<string | null>(null);
+    const [currentModel, setCurrentModel] = useState<string>("");
+    const [lineCounts, setLineCounts] = useState<Record<string, LineCounts>>({});
 
     const detectIntervalRef = useRef<number | null>(null);
     const urlLower = cameraUrl.toLowerCase();
@@ -77,6 +80,18 @@ export default function DetectionPage() {
         if (!cameraId) return;
         getZones(cameraId).then((data) => setZones(data.zones || [])).catch(console.error);
     }, [cameraId]);
+
+    // Fetch current model info when page loads
+    useEffect(() => {
+        fetch(`${API_BASE}/api/benchmark/models/current`)
+            .then(res => res.json())
+            .then(data => {
+                if (data.name) {
+                    setCurrentModel(data.name);
+                }
+            })
+            .catch(err => console.error("Failed to fetch current model:", err));
+    }, []);
 
     useEffect(() => {
         if (!isM3u8) {
@@ -166,6 +181,9 @@ export default function DetectionPage() {
                 setViolations(response.violations || []);
                 setFrameSize({ width: response.result.frame_width, height: response.result.frame_height });
                 setDebugInfo(`Detected: ${response.result.total_count} vehicles`);
+                if (response.model_info) {
+                    setCurrentModel(response.model_info.model_name || response.model_info.model_key);
+                }
             } else {
                 setDebugInfo(`Error: ${response.error || "No result"}`);
             }
@@ -175,47 +193,74 @@ export default function DetectionPage() {
         }
     }, [cameraUrl, cameraId]);
 
-    const runDetectionForVideo = useCallback(async () => {
-        if (!cameraId || !cameraUrl) return;
+    // Capture current frame from video player
+    const captureFrameFromVideo = useCallback(() => {
+        const video = videoRef.current;
+        const canvas = canvasRef.current;
 
-        console.log("Detecting from video URL:", cameraUrl);
+        if (!video || !canvas || video.readyState < 2) {
+            console.log("Video not ready for capture");
+            return null;
+        }
+
+        try {
+            canvas.width = video.videoWidth || 1280;
+            canvas.height = video.videoHeight || 720;
+            const ctx = canvas.getContext('2d');
+
+            if (!ctx) return null;
+
+            ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+            const dataUrl = canvas.toDataURL('image/jpeg', 0.85);
+            return dataUrl;
+        } catch (e) {
+            console.error("Failed to capture frame:", e);
+            return null;
+        }
+    }, []);
+
+    const runDetectionForVideo = useCallback(async () => {
+        if (!cameraId) return;
+
+        // Capture current frame from video player
+        const frameDataUrl = captureFrameFromVideo();
+        if (!frameDataUrl) {
+            setDebugInfo("Waiting for video to load...");
+            return;
+        }
+
+        console.log("Detecting from captured video frame");
         setDebugInfo("Detecting from video...");
 
         try {
-            const response = await fetch(`${API_BASE}/api/detection/detect-video`, {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({
-                    video_url: cameraUrl,
-                    camera_id: cameraId,
-                    include_zones: true,
-                }),
-            });
-            const data = await response.json();
-            console.log("Video detection response:", data);
-            if (data.success && data.result) {
-                setResult(data.result);
-                setViolations(data.violations || []);
-                setFrameSize({ width: data.result.frame_width, height: data.result.frame_height });
-                setDebugInfo(`Detected: ${data.result.total_count} vehicles (${data.result.processing_time_ms.toFixed(0)}ms)`);
+            const response = await detectVehicles(frameDataUrl, cameraId, true);
+            console.log("Video detection response:", response);
+            if (response.success && response.result) {
+                setResult(response.result);
+                setViolations(response.violations || []);
+                setFrameSize({ width: response.result.frame_width, height: response.result.frame_height });
+                setDebugInfo(`Detected: ${response.result.total_count} vehicles (${response.result.processing_time_ms.toFixed(0)}ms)`);
+                if (response.model_info) {
+                    setCurrentModel(response.model_info.model_name || response.model_info.model_key);
+                }
             } else {
-                setDebugInfo(`Error: ${data.error || "No result"}`);
+                setDebugInfo(`Error: ${response.error || "No result"}`);
             }
         } catch (e: any) {
             console.error("Video detection failed:", e);
             setDebugInfo(`Error: ${e.message}`);
         }
-    }, [cameraId, cameraUrl]);
+    }, [cameraId, captureFrameFromVideo]);
 
     useEffect(() => {
         if (isDetecting) {
             if (isVideo) {
-                if (isM3u8) {
+                // ✅ Use WebSocket for ALL videos (HLS + uploaded MP4)
                 const ws = new WebSocket(`${WS_BASE}/api/detection/video-stream/${encodeURIComponent(cameraId)}`);
                 wsRef.current = ws;
 
                 ws.onopen = () => {
-                    console.log("WebSocket connected");
+                    console.log("WebSocket connected for video detection");
                     setDebugInfo("Connecting to video stream...");
                     ws.send(JSON.stringify({ video_url: cameraUrl, send_frame: true }));
                 };
@@ -229,6 +274,7 @@ export default function DetectionPage() {
                         setFrameSize({ width: data.result.frame_width, height: data.result.frame_height });
                         setDebugInfo(`${data.result.total_count} vehicles (${data.result.processing_time_ms.toFixed(0)}ms)`);
                         if (data.frame) setSyncedFrame(data.frame);
+                        if (data.line_counts) setLineCounts(data.line_counts);
                     } else if (data.type === "connected") {
                         setDebugInfo("Video stream connected!");
                     } else if (data.type === "error") {
@@ -241,11 +287,6 @@ export default function DetectionPage() {
 
                 ws.onerror = () => setDebugInfo("WebSocket error");
                 ws.onclose = () => console.log("WebSocket closed");
-                } else {
-                // ✅ mp4 / api/media => dùng endpoint detect-video
-                runDetectionForVideo();
-                detectIntervalRef.current = window.setInterval(runDetectionForVideo, 3000);
-                }
             
             } else {
                 runDetectionForImage();
@@ -338,6 +379,11 @@ export default function DetectionPage() {
                         {isM3u8 ? "🎥 Live Stream" : "📷 Snapshot"}
                     </span>
                     <span className="text-xs text-green-500">{frameSize.width}x{frameSize.height}</span>
+                    {currentModel && (
+                        <span className="text-xs px-2 py-1 bg-blue-600/20 text-blue-400 rounded border border-blue-500/30">
+                            🤖 {currentModel}
+                        </span>
+                    )}
                     <div className="flex-1" />
                     <Button
                         variant={isDetecting ? "destructive" : "default"}
@@ -360,7 +406,7 @@ export default function DetectionPage() {
                         className="relative bg-black rounded-lg overflow-hidden"
                         style={{ aspectRatio: "16/9" }}
                     >
-                        {isM3u8 ? (
+                        {isVideo ? (
                             isDetecting && syncedFrame ? (
                                 <img
                                     src={syncedFrame}
@@ -374,8 +420,10 @@ export default function DetectionPage() {
                                     autoPlay
                                     muted
                                     playsInline
+                                    loop
                                     crossOrigin="anonymous"
                                     onLoadedMetadata={handleVideoLoad}
+                                    src={isM3u8 ? undefined : cameraUrl}
                                 />
                             )
                         ) : (
@@ -442,6 +490,7 @@ export default function DetectionPage() {
                             violations={violations}
                             zones={zones}
                             isConnected={isDetecting}
+                            lineCounts={lineCounts}
                         />
                     </div>
                 )}

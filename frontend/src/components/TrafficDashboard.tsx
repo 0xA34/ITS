@@ -1,11 +1,12 @@
 import { useState, useEffect } from "react";
-import type { DetectionResult, ParkingViolation, ZonePolygon } from "@/lib/api";
+import type { DetectionResult, ParkingViolation, ZonePolygon, LineCounts } from "@/lib/api";
 
 interface TrafficDashboardProps {
     result: DetectionResult | null;
     violations: ParkingViolation[];
     zones: ZonePolygon[];
     isConnected: boolean;
+    lineCounts?: Record<string, LineCounts>;
 }
 
 const VEHICLE_ICONS: Record<string, string> = {
@@ -31,6 +32,7 @@ export default function TrafficDashboard({
     violations,
     zones,
     isConnected,
+    lineCounts = {},
 }: TrafficDashboardProps) {
     const [history, setHistory] = useState<{ time: string; count: number }[]>([]);
 
@@ -154,6 +156,48 @@ export default function TrafficDashboard({
                                 <span className="ml-auto text-red-500 font-bold">
                                     {v.duration_seconds.toFixed(0)}s
                                 </span>
+                            </div>
+                        ))}
+                    </div>
+                </div>
+            )}
+
+            {/* Counting Lines Stats */}
+            {Object.keys(lineCounts).length > 0 && (
+                <div>
+                    <div className="flex items-center gap-2 mb-2">
+                        <span className="text-sm font-semibold text-foreground">🔢 Vehicle Counting</span>
+                    </div>
+                    <div className="space-y-2">
+                        {Object.values(lineCounts).map((count) => (
+                            <div
+                                key={count.line_id}
+                                className="bg-cyan-500/10 rounded p-3 border border-cyan-500/30"
+                            >
+                                <div className="flex items-center justify-between mb-1">
+                                    <span className="text-xs font-semibold text-foreground">
+                                        {count.line_name}
+                                    </span>
+                                    <span className="text-lg font-bold text-cyan-400">
+                                        {count.total}
+                                    </span>
+                                </div>
+                                <div className="flex gap-4 text-xs text-muted-foreground">
+                                    <span>↓ In: <span className="text-green-400 font-semibold">{count.count_in}</span></span>
+                                    <span>↑ Out: <span className="text-red-400 font-semibold">{count.count_out}</span></span>
+                                </div>
+                                {Object.keys(count.by_class).length > 0 && (
+                                    <div className="mt-2 flex flex-wrap gap-1">
+                                        {Object.entries(count.by_class).map(([cls, counts]) => (
+                                            <span
+                                                key={cls}
+                                                className="text-xs bg-background/50 px-2 py-0.5 rounded"
+                                            >
+                                                {VEHICLE_ICONS[cls] || "🚗"} {counts.in + counts.out}
+                                            </span>
+                                        ))}
+                                    </div>
+                                )}
                             </div>
                         ))}
                     </div>

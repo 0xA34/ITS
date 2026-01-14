@@ -11,27 +11,38 @@ const STORAGE_KEY = "selectedCameras";
 const Index = () => {
   const [dialogOpen, setDialogOpen] = useState(false);
   const [selectedCameras, setSelectedCameras] = useState<Camera[]>([]);
+  const [isLoaded, setIsLoaded] = useState(false); // Track if initial load is done
 
   // Load selected cameras từ localStorage (nếu có)
   useEffect(() => {
     try {
       const raw = localStorage.getItem(STORAGE_KEY);
-      if (!raw) return;
-      const parsed = JSON.parse(raw);
-      if (Array.isArray(parsed)) setSelectedCameras(parsed);
-    } catch {
-      // ignore
+      console.log("Loading from localStorage:", raw);
+      if (raw) {
+        const parsed = JSON.parse(raw);
+        if (Array.isArray(parsed)) {
+          console.log("Loaded cameras:", parsed);
+          setSelectedCameras(parsed);
+        }
+      }
+    } catch (e) {
+      console.error("Failed to load from localStorage:", e);
+    } finally {
+      setIsLoaded(true); // Mark as loaded regardless of success/failure
     }
   }, []);
 
-  // Save selected cameras
+  // Save selected cameras (only after initial load)
   useEffect(() => {
+    if (!isLoaded) return; // Don't save until we've loaded from localStorage
+
     try {
+      console.log("Saving to localStorage:", selectedCameras);
       localStorage.setItem(STORAGE_KEY, JSON.stringify(selectedCameras));
-    } catch {
-      // ignore
+    } catch (e) {
+      console.error("Failed to save to localStorage:", e);
     }
-  }, [selectedCameras]);
+  }, [selectedCameras, isLoaded]);
 
   return (
     <div className="min-h-screen bg-background">

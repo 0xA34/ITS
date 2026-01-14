@@ -51,6 +51,8 @@ class ZonePolygon(BaseModel):
     is_red_light: bool = False
     is_stop_line: bool = False  # Stop line zone for red light violation detection
     linked_traffic_light_id: Optional[str] = None  # ID of linked traffic light zone
+    is_counting_line: bool = False  # Counting line for vehicle counting
+    counting_direction: str = "both"  # "in", "out", or "both"
     color: str = "#00FF00"
 
 
@@ -93,9 +95,49 @@ class DetectRequest(BaseModel):
     include_zones: bool = False
 
 
+class VehicleCounting(BaseModel):
+    track_id: int
+    vehicle_class: str
+    zone_id: str
+    zone_name: str
+    crossed_at: str
+    direction: str  # "in", "out", or "unknown"
+
+
+class CountingStats(BaseModel):
+    zone_id: str
+    zone_name: str
+    total_count: int
+    count_by_class: dict[str, int] = Field(default_factory=dict)
+    count_in: int = 0
+    count_out: int = 0
+    recent_crossings: list[VehicleCounting] = Field(default_factory=list)
+
+
+class CountingRecord(BaseModel):
+    """Record of a vehicle crossing a counting line"""
+    line_id: str
+    line_name: str
+    track_id: int
+    vehicle_class: str
+    direction: str  # "in" or "out"
+    timestamp: str
+
+
+class LineCounts(BaseModel):
+    """Counting statistics for a single line"""
+    line_id: str
+    line_name: str
+    total: int = 0
+    count_in: int = 0
+    count_out: int = 0
+    by_class: dict[str, dict[str, int]] = Field(default_factory=dict)  # {class_name: {"in": X, "out": Y}}
+
+
 class DetectResponse(BaseModel):
     success: bool
     result: Optional[DetectionResult] = None
     violations: list[ParkingViolation] = Field(default_factory=list)
     red_light_violations: list[RedLightViolation] = Field(default_factory=list)
     error: Optional[str] = None
+    model_info: Optional[dict] = None

@@ -18,12 +18,11 @@ from app.models.detection import (
 )
 from app.services.tracker_service import TrackerManager
 from app.services.zone_service import ZoneService
+from app.services.model_manager import get_model_manager
 from shapely.geometry import Point, Polygon
 
 logger = logging.getLogger(__name__)
 
-_model = None
-_model_lock = asyncio.Lock()
 _executor = ThreadPoolExecutor(max_workers=2)
 
 VEHICLE_CLASSES = {
@@ -39,29 +38,24 @@ VEHICLE_CLASS_IDS = set(VEHICLE_CLASSES.keys())
 
 
 async def _load_model():
-    global _model
-    async with _model_lock:
-        if _model is not None:
-            return _model
-
-        from ultralytics import YOLO
-
-        model_path = settings.YOLO_MODEL_PATH
-        if not os.path.isabs(model_path):
-            model_path = os.path.join(os.getcwd(), model_path)
-
-        _model = YOLO(model_path)
-
-        import torch
-
-        if torch.cuda.is_available():
-            _model.to("cuda")
-
-        return _model
+    """Load the current active model from ModelManager."""
+    manager = get_model_manager()
+    return await manager.get_current_model()
 
 
 async def _fetch_image(url: str) -> Optional[np.ndarray]:
     try:
+        # Handle data URL (base64 encoded image)
+        if url.startswith("data:image"):
+            import base64
+            # Extract base64 data after comma
+            base64_data = url.split(",", 1)[1] if "," in url else url
+            image_bytes = base64.b64decode(base64_data)
+            nparr = np.frombuffer(image_bytes, np.uint8)
+            image = cv2.imdecode(nparr, cv2.IMREAD_COLOR)
+            return image
+
+        # Handle HTTP/HTTPS URL
         async with httpx.AsyncClient(timeout=10.0, follow_redirects=True) as client:
             response = await client.get(url)
             if response.status_code != 200:
@@ -70,7 +64,8 @@ async def _fetch_image(url: str) -> Optional[np.ndarray]:
             nparr = np.frombuffer(image_bytes, np.uint8)
             image = cv2.imdecode(nparr, cv2.IMREAD_COLOR)
             return image
-    except Exception:
+    except Exception as e:
+        logger.error(f"Failed to fetch image from {url[:50]}...: {e}")
         return None
 
 

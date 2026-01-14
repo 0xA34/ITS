@@ -58,6 +58,8 @@ export interface ZonePolygon {
   is_red_light: boolean;
   is_stop_line: boolean;
   linked_traffic_light_id: string | null;
+  is_counting_line?: boolean;
+  counting_direction?: string;
   color: string;
 }
 
@@ -70,11 +72,30 @@ export interface ParkingViolation {
   bbox: BoundingBox;
 }
 
+export interface CountingRecord {
+  line_id: string;
+  line_name: string;
+  track_id: number;
+  vehicle_class: string;
+  direction: string;
+  timestamp: string;
+}
+
+export interface LineCounts {
+  line_id: string;
+  line_name: string;
+  total: number;
+  count_in: number;
+  count_out: number;
+  by_class: Record<string, { in: number; out: number }>;
+}
+
 export interface DetectResponse {
   success: boolean;
   result: DetectionResult | null;
   violations: ParkingViolation[];
   error: string | null;
+  model_info?: { model_key: string; model_name: string };
 }
 
 export interface TrafficStats {
