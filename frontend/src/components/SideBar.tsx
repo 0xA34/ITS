@@ -11,7 +11,6 @@ import { NavLink } from "react-router-dom";
 const menuItem = [
   { icon: <House />, label: "Home", to: "/" },
   { icon: <Search />, label: "Tìm kiếm", to: "/search" },
-  { icon: <LaptopMinimalCheck />, label: "Check phạt nguội", to: "/test-img" },
   { icon: <BarChart3 />, label: "Benchmark", to: "/benchmark" },
 ];
 

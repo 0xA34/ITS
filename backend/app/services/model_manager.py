@@ -91,6 +91,58 @@ class BenchmarkResult:
         }
 
 
+def _discover_custom_models() -> dict[str, ModelInfo]:
+    """
+    Scan preTrainedModels directory for custom .pt files not in the predefined list.
+    Returns a dictionary of custom models with default metadata.
+    """
+    custom_models = {}
+    predefined_filenames = {
+        "yolov8n.pt", "yolov8s.pt", "yolov8m.pt", "yolov8l.pt", "yolov8x.pt",
+        "yolov12n.pt", "yolov12s.pt", "yolov12m.pt", "yolov12l.pt", "yolov12x.pt",
+    }
+    
+    if MODELS_DIR.exists():
+        for pt_file in MODELS_DIR.glob("*.pt"):
+            if pt_file.name not in predefined_filenames:
+                model_key = pt_file.stem.replace("-", "_").replace(".", "_")
+                display_name = pt_file.stem.replace("-", " ").replace("_", " ").title()
+                
+                version = "custom"
+                if "yolov8" in pt_file.name.lower():
+                    version = "v8"
+                elif "yolov12" in pt_file.name.lower():
+                    version = "v12"
+                elif "yolo" in pt_file.name.lower():
+                    for i in range(5, 30):
+                        if f"yolov{i}" in pt_file.name.lower() or f"yolo{i}" in pt_file.name.lower():
+                            version = f"v{i}"
+                            break
+                
+                size = ModelSize.MEDIUM
+                if "n" in pt_file.name.lower() and ("nano" in pt_file.name.lower() or pt_file.name.lower().endswith("n.pt")):
+                    size = ModelSize.NANO
+                elif "s" in pt_file.name.lower() and pt_file.name.lower().endswith("s.pt"):
+                    size = ModelSize.SMALL
+                elif "l" in pt_file.name.lower() and pt_file.name.lower().endswith("l.pt"):
+                    size = ModelSize.LARGE
+                elif "x" in pt_file.name.lower() and pt_file.name.lower().endswith("x.pt"):
+                    size = ModelSize.XLARGE
+                
+                custom_models[model_key] = ModelInfo(
+                    name=display_name,
+                    filename=pt_file.name,
+                    version=version,
+                    size=size,
+                    description=f"Custom model: {pt_file.name}",
+                    params_millions=0.0,
+                    expected_map50=0.0,
+                    expected_fps=0,
+                )
+    
+    return custom_models
+
+
 # Available models registry
 AVAILABLE_MODELS: dict[str, ModelInfo] = {
     "yolov8n": ModelInfo(
@@ -195,6 +247,8 @@ AVAILABLE_MODELS: dict[str, ModelInfo] = {
     ),
 }
 
+# Merge custom models discovered from preTrainedModels folder
+AVAILABLE_MODELS.update(_discover_custom_models())
 
 class ModelManager:
     """

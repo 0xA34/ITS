@@ -295,6 +295,8 @@ async def video_detection_stream(websocket: WebSocket, camera_id: str):
         data = await websocket.receive_json()
         video_url = data.get("video_url")
         send_frame = data.get("send_frame", True)
+        class_filter = data.get("class_filter")  # Optional: list of class names to detect
+        feature_filter = data.get("feature_filter")  # Optional: dict of feature visibility
 
         if not video_url:
             await websocket.send_json({"type": "error", "error": "video_url required"})
@@ -334,6 +336,10 @@ async def video_detection_stream(websocket: WebSocket, camera_id: str):
                     break
                 if msg.get("type") == "update_zones":
                     zones = await ZoneService.get_zones(camera_id)
+                if msg.get("type") == "update_class_filter":
+                    class_filter = msg.get("class_filter")
+                if msg.get("type") == "update_feature_filter":
+                    feature_filter = msg.get("feature_filter")
             except asyncio.TimeoutError:
                 pass
             except:
@@ -347,7 +353,8 @@ async def video_detection_stream(websocket: WebSocket, camera_id: str):
                 continue
 
             result = await DetectionService.detect_from_frame(
-                frame=frame, camera_id=camera_id, use_tracking=True
+                frame=frame, camera_id=camera_id, use_tracking=True,
+                class_filter=class_filter
             )
 
             if result:
@@ -387,7 +394,22 @@ async def video_detection_stream(websocket: WebSocket, camera_id: str):
                 traffic_light_map = {z.id: z for z in zones if z.is_traffic_light}
 
                 for zone in zones:
-                    if len(zone.points) >= 3:
+                    if len(zone.points) >= 3 or (zone.is_counting_line and len(zone.points) >= 2):
+                        # Check feature filter
+                        show_zone = True
+                        if feature_filter:
+                            if zone.is_traffic_light and not feature_filter.get("traffic_light", True):
+                                show_zone = False
+                            elif zone.is_parking_zone and not feature_filter.get("parking_zone", True):
+                                show_zone = False
+                            elif zone.is_counting_line and not feature_filter.get("counting_line", True):
+                                show_zone = False
+                            elif zone.is_stop_line and not feature_filter.get("stop_line", True):
+                                show_zone = False
+                        
+                        if not show_zone:
+                            continue
+                            
                         pts = np.array(
                             [[int(p.x), int(p.y)] for p in zone.points], np.int32
                         )

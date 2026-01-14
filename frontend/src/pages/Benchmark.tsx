@@ -172,9 +172,6 @@ export default function BenchmarkPage() {
         <div className="flex items-center justify-between mb-8">
           <div>
             <h1 className="text-3xl font-bold">Model Benchmark</h1>
-            <p className="text-gray-400 mt-1">
-              Quản lý và đánh giá các model YOLO cho tiểu luận
-            </p>
           </div>
           <a
             href="/"

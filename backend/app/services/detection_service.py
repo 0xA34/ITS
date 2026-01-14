@@ -86,12 +86,14 @@ def _capture_video_frame(video_url: str) -> Optional[np.ndarray]:
         return None
 
 
-def _run_inference(model, image: np.ndarray) -> list:
+def _run_inference(model, image: np.ndarray, class_ids: Optional[list[int]] = None) -> list:
+    if class_ids is None:
+        class_ids = list(VEHICLE_CLASS_IDS)
     results = model.predict(
         source=image,
         conf=0.25,
         iou=0.45,
-        classes=list(VEHICLE_CLASS_IDS),
+        classes=class_ids,
         verbose=False,
         half=True,
     )
@@ -268,7 +270,8 @@ class DetectionService:
 
     @staticmethod
     async def detect_from_url(
-        image_url: str, camera_id: Optional[str] = None, use_tracking: bool = True
+        image_url: str, camera_id: Optional[str] = None, use_tracking: bool = True,
+        class_filter: Optional[list[str]] = None
     ) -> Optional[DetectionResult]:
         model = await _load_model()
         image = await _fetch_image(image_url)
@@ -278,8 +281,17 @@ class DetectionService:
 
         start_time = time.time()
 
+        class_ids = None
+        if class_filter:
+            class_name_to_id = {v: k for k, v in VEHICLE_CLASSES.items()}
+            class_ids = [class_name_to_id[name] for name in class_filter if name in class_name_to_id]
+            if not class_ids:
+                class_ids = list(VEHICLE_CLASS_IDS)
+
         loop = asyncio.get_event_loop()
-        results = await loop.run_in_executor(_executor, _run_inference, model, image)
+        results = await loop.run_in_executor(
+            _executor, lambda: _run_inference(model, image, class_ids)
+        )
 
         if not results or len(results) == 0:
             return DetectionResult(
@@ -371,14 +383,24 @@ class DetectionService:
 
     @staticmethod
     async def detect_from_frame(
-        frame: np.ndarray, camera_id: Optional[str] = None, use_tracking: bool = True
+        frame: np.ndarray, camera_id: Optional[str] = None, use_tracking: bool = True,
+        class_filter: Optional[list[str]] = None
     ) -> Optional[DetectionResult]:
         model = await _load_model()
 
         start_time = time.time()
 
+        class_ids = None
+        if class_filter:
+            class_name_to_id = {v: k for k, v in VEHICLE_CLASSES.items()}
+            class_ids = [class_name_to_id[name] for name in class_filter if name in class_name_to_id]
+            if not class_ids:
+                class_ids = list(VEHICLE_CLASS_IDS)
+
         loop = asyncio.get_event_loop()
-        results = await loop.run_in_executor(_executor, _run_inference, model, frame)
+        results = await loop.run_in_executor(
+            _executor, lambda: _run_inference(model, frame, class_ids)
+        )
 
         if not results or len(results) == 0:
             return DetectionResult(
