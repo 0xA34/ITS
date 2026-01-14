@@ -5,6 +5,7 @@ import NotFound from "./pages/NotFound";
 import Test from "./pages/Test-img"
 import Search from "./pages/Search"
 import Detection from "./pages/Detection"
+import BenchmarkPage from "@/pages/Benchmark.tsx";
 
 const queryClient = new QueryClient();
 
@@ -16,6 +17,7 @@ const App = () => (
         <Route path="/search" element={<Search />} />
         <Route path="/test-img" element={<Test />} />
         <Route path="/detection" element={<Detection />} />
+          <Route path="/benchmark" element={<BenchmarkPage />} />
         <Route path="*" element={<NotFound />} />
       </Routes>
     </BrowserRouter>

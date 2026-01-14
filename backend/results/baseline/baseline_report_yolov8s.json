@@ -1,0 +1,598 @@
+{
+  "title": "Vehicle Detection Baseline Evaluation",
+  "description": "Baseline evaluation for the Vehicle Detection & Monitoring Survey project.",
+  "generated_at": "2026-01-09T17:07:39.819469",
+  "dataset": {
+    "name": "COCODataset",
+    "num_images": 2968,
+    "num_annotations": 14323,
+    "classes": [
+      "person",
+      "bicycle",
+      "car",
+      "motorcycle",
+      "bus",
+      "truck"
+    ],
+    "split": "val"
+  },
+  "models": {
+    "yolov8s": {
+      "model_name": "yolov8s",
+      "accuracy": {
+        "mAP@0.5": 0.5762625009943824,
+        "mAP@0.75": 0.45830010695744955,
+        "mAP@[.5:.95]": 0.42211592707299816,
+        "precision": 0.7996908306891222,
+        "recall": 0.6984296169970866,
+        "f1_score": 0.7456379912001215,
+        "ap_per_class": {
+          "person": 0.6912601207243059,
+          "bicycle": 0.45850800160349425,
+          "car": 0.5563023544628054,
+          "motorcycle": 0.6350096584113845,
+          "bus": 0.7284027308056422,
+          "truck": 0.3880921399586623
+        }
+      },
+      "speed": {
+        "fps": 50.14776289134848,
+        "latency_ms": 19.94106899976032,
+        "latency_std_ms": 0.0
+      },
+      "model_info": {
+        "params_millions": 0.0,
+        "flops_billions": 0.0,
+        "model_size_mb": 0.0
+      },
+      "config": {
+        "device": "",
+        "image_size": [
+          640,
+          640
+        ],
+        "source": "Evaluated"
+      }
+    },
+    "YOLOv8n": {
+      "model_name": "YOLOv8n",
+      "accuracy": {
+        "mAP@0.5": 0.37,
+        "mAP@0.75": 0.228,
+        "mAP@[.5:.95]": 0.183,
+        "precision": 0.0,
+        "recall": 0.0,
+        "f1_score": 0.0,
+        "ap_per_class": {}
+      },
+      "speed": {
+        "fps": 195,
+        "latency_ms": 5.1,
+        "latency_std_ms": 0.0
+      },
+      "model_info": {
+        "params_millions": 3.2,
+        "flops_billions": 0.0,
+        "model_size_mb": 0.0
+      },
+      "config": {
+        "device": "",
+        "image_size": [
+          640,
+          640
+        ],
+        "source": "Ultralytics Official"
+      }
+    },
+    "YOLOv8s": {
+      "model_name": "YOLOv8s",
+      "accuracy": {
+        "mAP@0.5": 0.449,
+        "mAP@0.75": 0.282,
+        "mAP@[.5:.95]": 0.228,
+        "precision": 0.0,
+        "recall": 0.0,
+        "f1_score": 0.0,
+        "ap_per_class": {}
+      },
+      "speed": {
+        "fps": 142,
+        "latency_ms": 7.0,
+        "latency_std_ms": 0.0
+      },
+      "model_info": {
+        "params_millions": 11.2,
+        "flops_billions": 0.0,
+        "model_size_mb": 0.0
+      },
+      "config": {
+        "device": "",
+        "image_size": [
+          640,
+          640
+        ],
+        "source": "Ultralytics Official"
+      }
+    },
+    "YOLOv8m": {
+      "model_name": "YOLOv8m",
+      "accuracy": {
+        "mAP@0.5": 0.502,
+        "mAP@0.75": 0.327,
+        "mAP@[.5:.95]": 0.257,
+        "precision": 0.0,
+        "recall": 0.0,
+        "f1_score": 0.0,
+        "ap_per_class": {}
+      },
+      "speed": {
+        "fps": 80,
+        "latency_ms": 12.5,
+        "latency_std_ms": 0.0
+      },
+      "model_info": {
+        "params_millions": 25.9,
+        "flops_billions": 0.0,
+        "model_size_mb": 0.0
+      },
+      "config": {
+        "device": "",
+        "image_size": [
+          640,
+          640
+        ],
+        "source": "Ultralytics Official"
+      }
+    },
+    "YOLOv8l": {
+      "model_name": "YOLOv8l",
+      "accuracy": {
+        "mAP@0.5": 0.528,
+        "mAP@0.75": 0.35,
+        "mAP@[.5:.95]": 0.273,
+        "precision": 0.0,
+        "recall": 0.0,
+        "f1_score": 0.0,
+        "ap_per_class": {}
+      },
+      "speed": {
+        "fps": 50,
+        "latency_ms": 20.0,
+        "latency_std_ms": 0.0
+      },
+      "model_info": {
+        "params_millions": 43.7,
+        "flops_billions": 0.0,
+        "model_size_mb": 0.0
+      },
+      "config": {
+        "device": "",
+        "image_size": [
+          640,
+          640
+        ],
+        "source": "Ultralytics Official"
+      }
+    },
+    "YOLOv8x": {
+      "model_name": "YOLOv8x",
+      "accuracy": {
+        "mAP@0.5": 0.54,
+        "mAP@0.75": 0.362,
+        "mAP@[.5:.95]": 0.285,
+        "precision": 0.0,
+        "recall": 0.0,
+        "f1_score": 0.0,
+        "ap_per_class": {}
+      },
+      "speed": {
+        "fps": 35,
+        "latency_ms": 28.6,
+        "latency_std_ms": 0.0
+      },
+      "model_info": {
+        "params_millions": 68.2,
+        "flops_billions": 0.0,
+        "model_size_mb": 0.0
+      },
+      "config": {
+        "device": "",
+        "image_size": [
+          640,
+          640
+        ],
+        "source": "Ultralytics Official"
+      }
+    },
+    "YOLOv5n": {
+      "model_name": "YOLOv5n",
+      "accuracy": {
+        "mAP@0.5": 0.28,
+        "mAP@0.75": 0.175,
+        "mAP@[.5:.95]": 0.14,
+        "precision": 0.0,
+        "recall": 0.0,
+        "f1_score": 0.0,
+        "ap_per_class": {}
+      },
+      "speed": {
+        "fps": 160,
+        "latency_ms": 6.25,
+        "latency_std_ms": 0.0
+      },
+      "model_info": {
+        "params_millions": 1.9,
+        "flops_billions": 0.0,
+        "model_size_mb": 0.0
+      },
+      "config": {
+        "device": "",
+        "image_size": [
+          640,
+          640
+        ],
+        "source": "Ultralytics Official"
+      }
+    },
+    "YOLOv5s": {
+      "model_name": "YOLOv5s",
+      "accuracy": {
+        "mAP@0.5": 0.374,
+        "mAP@0.75": 0.235,
+        "mAP@[.5:.95]": 0.188,
+        "precision": 0.0,
+        "recall": 0.0,
+        "f1_score": 0.0,
+        "ap_per_class": {}
+      },
+      "speed": {
+        "fps": 118,
+        "latency_ms": 8.5,
+        "latency_std_ms": 0.0
+      },
+      "model_info": {
+        "params_millions": 7.2,
+        "flops_billions": 0.0,
+        "model_size_mb": 0.0
+      },
+      "config": {
+        "device": "",
+        "image_size": [
+          640,
+          640
+        ],
+        "source": "Ultralytics Official"
+      }
+    },
+    "YOLOv5m": {
+      "model_name": "YOLOv5m",
+      "accuracy": {
+        "mAP@0.5": 0.453,
+        "mAP@0.75": 0.293,
+        "mAP@[.5:.95]": 0.231,
+        "precision": 0.0,
+        "recall": 0.0,
+        "f1_score": 0.0,
+        "ap_per_class": {}
+      },
+      "speed": {
+        "fps": 75,
+        "latency_ms": 13.3,
+        "latency_std_ms": 0.0
+      },
+      "model_info": {
+        "params_millions": 21.2,
+        "flops_billions": 0.0,
+        "model_size_mb": 0.0
+      },
+      "config": {
+        "device": "",
+        "image_size": [
+          640,
+          640
+        ],
+        "source": "Ultralytics Official"
+      }
+    },
+    "YOLOv5l": {
+      "model_name": "YOLOv5l",
+      "accuracy": {
+        "mAP@0.5": 0.49,
+        "mAP@0.75": 0.323,
+        "mAP@[.5:.95]": 0.252,
+        "precision": 0.0,
+        "recall": 0.0,
+        "f1_score": 0.0,
+        "ap_per_class": {}
+      },
+      "speed": {
+        "fps": 50,
+        "latency_ms": 20.0,
+        "latency_std_ms": 0.0
+      },
+      "model_info": {
+        "params_millions": 46.5,
+        "flops_billions": 0.0,
+        "model_size_mb": 0.0
+      },
+      "config": {
+        "device": "",
+        "image_size": [
+          640,
+          640
+        ],
+        "source": "Ultralytics Official"
+      }
+    },
+    "YOLOv7-tiny": {
+      "model_name": "YOLOv7-tiny",
+      "accuracy": {
+        "mAP@0.5": 0.38,
+        "mAP@0.75": 0.24,
+        "mAP@[.5:.95]": 0.191,
+        "precision": 0.0,
+        "recall": 0.0,
+        "f1_score": 0.0,
+        "ap_per_class": {}
+      },
+      "speed": {
+        "fps": 150,
+        "latency_ms": 6.7,
+        "latency_std_ms": 0.0
+      },
+      "model_info": {
+        "params_millions": 6.2,
+        "flops_billions": 0.0,
+        "model_size_mb": 0.0
+      },
+      "config": {
+        "device": "",
+        "image_size": [
+          640,
+          640
+        ],
+        "source": "YOLOv7 Paper"
+      }
+    }
+  },
+  "summary": {
+    "best_accuracy": "yolov8s",
+    "best_speed": "YOLOv8n",
+    "best_balanced": "YOLOv8n",
+    "best_efficiency": "YOLOv5n",
+    "num_models": 11
+  },
+  "rankings": {
+    "accuracy_map50": [
+      {
+        "model": "yolov8s",
+        "value": 0.5762625009943824
+      },
+      {
+        "model": "YOLOv8x",
+        "value": 0.54
+      },
+      {
+        "model": "YOLOv8l",
+        "value": 0.528
+      },
+      {
+        "model": "YOLOv8m",
+        "value": 0.502
+      },
+      {
+        "model": "YOLOv5l",
+        "value": 0.49
+      },
+      {
+        "model": "YOLOv5m",
+        "value": 0.453
+      },
+      {
+        "model": "YOLOv8s",
+        "value": 0.449
+      },
+      {
+        "model": "YOLOv7-tiny",
+        "value": 0.38
+      },
+      {
+        "model": "YOLOv5s",
+        "value": 0.374
+      },
+      {
+        "model": "YOLOv8n",
+        "value": 0.37
+      },
+      {
+        "model": "YOLOv5n",
+        "value": 0.28
+      }
+    ],
+    "accuracy_map50_95": [
+      {
+        "model": "yolov8s",
+        "value": 0.42211592707299816
+      },
+      {
+        "model": "YOLOv8x",
+        "value": 0.285
+      },
+      {
+        "model": "YOLOv8l",
+        "value": 0.273
+      },
+      {
+        "model": "YOLOv8m",
+        "value": 0.257
+      },
+      {
+        "model": "YOLOv5l",
+        "value": 0.252
+      },
+      {
+        "model": "YOLOv5m",
+        "value": 0.231
+      },
+      {
+        "model": "YOLOv8s",
+        "value": 0.228
+      },
+      {
+        "model": "YOLOv7-tiny",
+        "value": 0.191
+      },
+      {
+        "model": "YOLOv5s",
+        "value": 0.188
+      },
+      {
+        "model": "YOLOv8n",
+        "value": 0.183
+      },
+      {
+        "model": "YOLOv5n",
+        "value": 0.14
+      }
+    ],
+    "speed_fps": [
+      {
+        "model": "YOLOv8n",
+        "value": 195
+      },
+      {
+        "model": "YOLOv5n",
+        "value": 160
+      },
+      {
+        "model": "YOLOv7-tiny",
+        "value": 150
+      },
+      {
+        "model": "YOLOv8s",
+        "value": 142
+      },
+      {
+        "model": "YOLOv5s",
+        "value": 118
+      },
+      {
+        "model": "YOLOv8m",
+        "value": 80
+      },
+      {
+        "model": "YOLOv5m",
+        "value": 75
+      },
+      {
+        "model": "yolov8s",
+        "value": 50.14776289134848
+      },
+      {
+        "model": "YOLOv8l",
+        "value": 50
+      },
+      {
+        "model": "YOLOv5l",
+        "value": 50
+      },
+      {
+        "model": "YOLOv8x",
+        "value": 35
+      }
+    ],
+    "speed_latency": [
+      {
+        "model": "YOLOv8n",
+        "value": 5.1
+      },
+      {
+        "model": "YOLOv5n",
+        "value": 6.25
+      },
+      {
+        "model": "YOLOv7-tiny",
+        "value": 6.7
+      },
+      {
+        "model": "YOLOv8s",
+        "value": 7.0
+      },
+      {
+        "model": "YOLOv5s",
+        "value": 8.5
+      },
+      {
+        "model": "YOLOv8m",
+        "value": 12.5
+      },
+      {
+        "model": "YOLOv5m",
+        "value": 13.3
+      },
+      {
+        "model": "yolov8s",
+        "value": 19.94106899976032
+      },
+      {
+        "model": "YOLOv8l",
+        "value": 20.0
+      },
+      {
+        "model": "YOLOv5l",
+        "value": 20.0
+      },
+      {
+        "model": "YOLOv8x",
+        "value": 28.6
+      }
+    ],
+    "efficiency": [
+      {
+        "model": "YOLOv5n",
+        "value": 0.1473684210526316
+      },
+      {
+        "model": "YOLOv8n",
+        "value": 0.11562499999999999
+      },
+      {
+        "model": "YOLOv7-tiny",
+        "value": 0.06129032258064516
+      },
+      {
+        "model": "YOLOv5s",
+        "value": 0.051944444444444446
+      },
+      {
+        "model": "YOLOv8s",
+        "value": 0.040089285714285716
+      },
+      {
+        "model": "YOLOv5m",
+        "value": 0.02136792452830189
+      },
+      {
+        "model": "YOLOv8m",
+        "value": 0.019382239382239385
+      },
+      {
+        "model": "YOLOv8l",
+        "value": 0.012082379862700228
+      },
+      {
+        "model": "YOLOv5l",
+        "value": 0.010537634408602151
+      },
+      {
+        "model": "YOLOv8x",
+        "value": 0.007917888563049853
+      },
+      {
+        "model": "yolov8s",
+        "value": 0.0
+      }
+    ]
+  },
+  "notes": []
+}

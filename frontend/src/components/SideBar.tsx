@@ -1,13 +1,19 @@
 //src\components\SideBar.tsx
-import { Camera, House, Search, LaptopMinimalCheck } from "lucide-react";
+import {
+  Camera,
+  House,
+  Search,
+  LaptopMinimalCheck,
+  BarChart3,
+} from "lucide-react";
 import { NavLink } from "react-router-dom";
 
 const menuItem = [
   { icon: <House />, label: "Home", to: "/" },
   { icon: <Search />, label: "Tìm kiếm", to: "/search" },
-  { icon: <LaptopMinimalCheck />, label: "Check phạt nguội", to: "test-img" },
+  { icon: <LaptopMinimalCheck />, label: "Check phạt nguội", to: "/test-img" },
+  { icon: <BarChart3 />, label: "Benchmark", to: "/benchmark" },
 ];
-
 
 const SideBar = () => {
   return (
@@ -25,7 +31,9 @@ const SideBar = () => {
         </div>
         <div>
           <h1 className="text-lg font-semibold text-foreground">Camera</h1>
-          <p className="text-xs text-muted-foreground">Theo dõi trực tiếp 24/7</p>
+          <p className="text-xs text-muted-foreground">
+            Theo dõi trực tiếp 24/7
+          </p>
         </div>
       </div>
 
@@ -35,13 +43,15 @@ const SideBar = () => {
           <NavLink
             to={item.to}
             key={index}
-            className="
-              flex items-center gap-3
+            className={({ isActive }) =>
+              `flex items-center gap-3
               rounded-lg px-3 py-2
-              text-sm text-muted-foreground
+              text-sm
               hover:bg-secondary hover:text-foreground
               transition-colors
-            ">
+              ${isActive ? "bg-secondary text-foreground" : "text-muted-foreground"}`
+            }
+          >
             <div className="flex h-8 w-8 items-center justify-center rounded-md bg-secondary">
               {/* chỗ này sau bạn muốn thêm icon thì nhét vào */}
               <span className="text-xs font-semibold">{item.icon}</span>
