@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import DetectionViewer from "@/components/DetectionViewer";
 import PolygonEditor from "@/components/PolygonEditor";
 import TrafficDashboard from "@/components/TrafficDashboard";
+
 import {
     detectVehicles,
     getZones,
@@ -42,6 +43,7 @@ export default function DetectionPage() {
     const [isDetecting, setIsDetecting] = useState(false);
     const [isEditing, setIsEditing] = useState(false);
     const [showDashboard, setShowDashboard] = useState(true);
+    const [showDensitySection, setShowDensitySection] = useState(false);
     const [debugInfo, setDebugInfo] = useState("");
 
     const [result, setResult] = useState<DetectionResult | null>(null);
@@ -429,6 +431,17 @@ export default function DetectionPage() {
                     >
                         {isDetecting ? "⏹ Stop" : "▶ Start Detection"}
                     </Button>
+                    {isDetecting && (
+                        <Button
+                            variant="outline"
+                            onClick={() => setShowDensitySection(!showDensitySection)}
+                            className={showDensitySection
+                                ? "bg-purple-600/40 border-purple-500 text-purple-300 hover:bg-purple-600/50"
+                                : "bg-purple-600/20 border-purple-500 text-purple-400 hover:bg-purple-600/30"}
+                        >
+                            📊 Traffic Density
+                        </Button>
+                    )}
                     <Button variant="outline" onClick={() => setShowDashboard(!showDashboard)}>
                         {showDashboard ? "Hide Stats" : "Stats"}
                     </Button>
@@ -602,10 +615,14 @@ export default function DetectionPage() {
                             zones={zones}
                             isConnected={isDetecting}
                             lineCounts={lineCounts}
+                            cameraId={cameraId}
+                            showDensitySection={showDensitySection}
                         />
                     </div>
                 )}
             </div>
+
+
         </div>
     );
 }

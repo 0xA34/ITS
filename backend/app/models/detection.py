@@ -53,6 +53,7 @@ class ZonePolygon(BaseModel):
     linked_traffic_light_id: Optional[str] = None  # ID of linked traffic light zone
     is_counting_line: bool = False  # Counting line for vehicle counting
     counting_direction: str = "both"  # "in", "out", or "both"
+    is_ignore_zone: bool = False  # Ignore zone - vehicles here won't be counted for density or even detect
     color: str = "#00FF00"
 
 
@@ -141,3 +142,34 @@ class DetectResponse(BaseModel):
     red_light_violations: list[RedLightViolation] = Field(default_factory=list)
     error: Optional[str] = None
     model_info: Optional[dict] = None
+
+
+class TrafficDensityConfig(BaseModel):
+    """Configuration for traffic density tracking."""
+    duration_minutes: int = 15
+
+
+class TrafficDensityResult(BaseModel):
+    """Result of traffic density calculation."""
+    camera_id: str
+    start_time: str
+    end_time: str
+    duration_minutes: int
+    hour: int
+    total_vehicles: int
+    flow_rate: float  # q = n/t (vehicles per hour)
+    hourly_average: float
+    density_percentage: float
+    density_level: Literal["heavy", "medium", "light"]
+    density_label: str
+    vehicle_breakdown: dict[str, int] = Field(default_factory=dict)
+
+
+class TrafficDensityStatus(BaseModel):
+    """Current status of traffic density tracking."""
+    is_tracking: bool
+    current_count: int
+    elapsed_minutes: float = 0
+    duration_minutes: int = 0
+    hour: int = 0
+

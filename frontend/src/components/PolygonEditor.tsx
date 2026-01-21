@@ -30,7 +30,7 @@ const ZONE_COLORS = [
   "#8800FF",
 ];
 
-type ZoneType = "normal" | "parking" | "traffic_light" | "stop_line" | "counting_line";
+type ZoneType = "normal" | "parking" | "traffic_light" | "stop_line" | "counting_line" | "ignore";
 
 export default function PolygonEditor({
   zones,
@@ -72,6 +72,9 @@ export default function PolygonEditor({
   );
 
   const getZoneColor = (zone: ZonePolygon) => {
+    if (zone.is_ignore_zone) {
+      return "rgba(128, 128, 128, 0.4)"; // Gray for ignore zones
+    }
     if (zone.is_traffic_light) {
       return zone.is_red_light
         ? "rgba(255, 0, 0, 0.35)"
@@ -96,6 +99,9 @@ export default function PolygonEditor({
   };
 
   const getZoneStrokeColor = (zone: ZonePolygon) => {
+    if (zone.is_ignore_zone) {
+      return "#888888"; // Gray for ignore zones
+    }
     if (zone.is_counting_line) {
       return "#00FFFF"; // Cyan for counting lines
     }
@@ -281,6 +287,7 @@ export default function PolygonEditor({
         zoneType === "stop_line" ? linkedTrafficLightId : null,
       is_counting_line: zoneType === "counting_line",
       counting_direction: "both",
+      is_ignore_zone: zoneType === "ignore",
       color:
         zoneType === "traffic_light"
           ? "#FFFF00"
@@ -288,7 +295,9 @@ export default function PolygonEditor({
             ? "#FFFFFF"
             : zoneType === "counting_line"
               ? "#00FFFF"
-              : ZONE_COLORS[zones.length % ZONE_COLORS.length],
+              : zoneType === "ignore"
+                ? "#888888"
+                : ZONE_COLORS[zones.length % ZONE_COLORS.length],
     };
 
     onZoneAdd(zone);
@@ -384,6 +393,7 @@ export default function PolygonEditor({
               <option value="traffic_light">🚦 Traffic Light</option>
               <option value="stop_line">🚧 Stop Line</option>
               <option value="counting_line">🔢 Counting Line</option>
+              <option value="ignore">🚫 Ignore Zone</option>
             </select>
 
             {/* Show traffic light selector when stop_line is selected */}
