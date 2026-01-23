@@ -1,5 +1,7 @@
 import { useState, useEffect } from "react";
-import type { DetectionResult, ParkingViolation, ZonePolygon, LineCounts } from "@/lib/api";
+import { Button } from "@/components/ui/button";
+import type { DetectionResult, ParkingViolation, ZonePolygon, LineCounts, TrafficDensityResult, TrafficDensityConfig } from "@/lib/api";
+import { startDensityTracking, stopDensityTracking, getDensityStatus } from "@/lib/api";
 
 interface TrafficDashboardProps {
     result: DetectionResult | null;
@@ -7,6 +9,8 @@ interface TrafficDashboardProps {
     zones: ZonePolygon[];
     isConnected: boolean;
     lineCounts?: Record<string, LineCounts>;
+    cameraId: string;
+    showDensitySection?: boolean;
 }
 
 const VEHICLE_ICONS: Record<string, string> = {
@@ -33,8 +37,20 @@ export default function TrafficDashboard({
     zones,
     isConnected,
     lineCounts = {},
+    cameraId,
+    showDensitySection = false,
 }: TrafficDashboardProps) {
     const [history, setHistory] = useState<{ time: string; count: number }[]>([]);
+
+    // Traffic Density State
+    const [durationMinutes, setDurationMinutes] = useState(15);
+    const [isTracking, setIsTracking] = useState(false);
+    const [currentCount, setCurrentCount] = useState(0);
+    const [elapsedMinutes, setElapsedMinutes] = useState(0);
+    const [currentHour, setCurrentHour] = useState(new Date().getHours());
+    const [densityResult, setDensityResult] = useState<TrafficDensityResult | null>(null);
+    const [densityError, setDensityError] = useState<string | null>(null);
+    const [densityLoading, setDensityLoading] = useState(false);
 
     useEffect(() => {
         if (result && result.total_count > 0) {
@@ -50,7 +66,74 @@ export default function TrafficDashboard({
         }
     }, [result]);
 
+    // Polling for density status when tracking
+    useEffect(() => {
+        let interval: number | null = null;
+
+        if (isTracking && cameraId) {
+            interval = window.setInterval(async () => {
+                try {
+                    const status = await getDensityStatus(cameraId);
+                    setCurrentCount(status.current_count);
+                    setElapsedMinutes(status.elapsed_minutes);
+
+                    if (status.elapsed_minutes >= durationMinutes) {
+                        await handleDensityStop();
+                    }
+                } catch (e) {
+                    console.error("Error polling density status:", e);
+                }
+            }, 2000);
+        }
+
+        return () => {
+            if (interval) clearInterval(interval);
+        };
+    }, [isTracking, cameraId, durationMinutes]);
+
+    const handleDensityStart = async () => {
+        if (!cameraId) return;
+        setDensityError(null);
+        setDensityResult(null);
+        setDensityLoading(true);
+
+        try {
+            const config: TrafficDensityConfig = {
+                duration_minutes: durationMinutes,
+            };
+            await startDensityTracking(cameraId, config);
+            setIsTracking(true);
+            setCurrentCount(0);
+            setElapsedMinutes(0);
+            setCurrentHour(new Date().getHours());
+        } catch (e: any) {
+            setDensityError(e.message || "Failed to start tracking");
+        } finally {
+            setDensityLoading(false);
+        }
+    };
+
+    const handleDensityStop = async () => {
+        if (!cameraId) return;
+        setDensityLoading(true);
+        try {
+            const result = await stopDensityTracking(cameraId);
+            setDensityResult(result);
+            setIsTracking(false);
+        } catch (e: any) {
+            setDensityError(e.message || "Failed to stop tracking");
+        } finally {
+            setDensityLoading(false);
+        }
+    };
+
     const maxCount = Math.max(...history.map((h) => h.count), 1);
+
+    const DENSITY_COLORS = {
+        heavy: "bg-red-500",
+        medium: "bg-yellow-500",
+        light: "bg-green-500",
+    };
 
     return (
         <div className="bg-card border border-border rounded-lg p-4 space-y-4">
@@ -207,6 +290,162 @@ export default function TrafficDashboard({
             {result && (
                 <div className="text-xs text-muted-foreground text-right">
                     Processing: {result.processing_time_ms.toFixed(0)}ms
+                </div>
+            )}
+
+            {/* Traffic Density Section */}
+            {showDensitySection && (
+                <div className="border-t border-border pt-4 space-y-3">
+                    <div className="flex items-center gap-2">
+                        <span className="text-sm font-semibold text-foreground">📊 Traffic Density</span>
+                        {isTracking && (
+                            <span className="w-2 h-2 bg-purple-500 rounded-full animate-pulse" />
+                        )}
+                    </div>
+
+                    {/* Config Form - hiển thị khi chưa tracking và chưa có result */}
+                    {!isTracking && !densityResult && (
+                        <div className="space-y-3">
+                            <div className="bg-secondary/50 rounded-lg p-2 text-xs">
+                                <p className="text-muted-foreground">
+                                    So sánh với trung bình khung giờ {new Date().getHours()}h - {new Date().getHours() + 1}h
+                                </p>
+                            </div>
+                            <div className="flex items-center gap-2">
+                                <label className="text-xs text-muted-foreground">Duration:</label>
+                                <input
+                                    type="number"
+                                    value={durationMinutes}
+                                    onChange={(e) => setDurationMinutes(Number(e.target.value))}
+                                    className="w-16 px-2 py-1 bg-secondary border border-border rounded text-sm"
+                                    min={1}
+                                    max={60}
+                                />
+                                <span className="text-xs text-muted-foreground">phút</span>
+                            </div>
+                            <Button
+                                className="w-full bg-purple-600 hover:bg-purple-700"
+                                size="sm"
+                                onClick={handleDensityStart}
+                                disabled={densityLoading}
+                            >
+                                {densityLoading ? "Starting..." : "▶ Start Tracking"}
+                            </Button>
+                        </div>
+                    )}
+
+                    {/* Tracking Progress */}
+                    {isTracking && (
+                        <div className="space-y-3">
+                            <div className="text-center">
+                                <div className="text-3xl font-bold text-primary">{currentCount}</div>
+                                <div className="text-xs text-muted-foreground">vehicles counted</div>
+                            </div>
+
+                            <div className="bg-secondary rounded-lg p-2">
+                                <div className="flex justify-between text-xs mb-1">
+                                    <span>Progress</span>
+                                    <span>{elapsedMinutes.toFixed(1)} / {durationMinutes} min</span>
+                                </div>
+                                <div className="w-full bg-gray-700 rounded-full h-1.5">
+                                    <div
+                                        className="bg-purple-500 h-1.5 rounded-full transition-all"
+                                        style={{ width: `${Math.min((elapsedMinutes / durationMinutes) * 100, 100)}%` }}
+                                    />
+                                </div>
+                            </div>
+
+                            <div className="text-xs text-muted-foreground text-center">
+                                Hour: {currentHour}h - {currentHour + 1}h
+                            </div>
+
+                            <Button
+                                className="w-full"
+                                variant="destructive"
+                                size="sm"
+                                onClick={handleDensityStop}
+                                disabled={densityLoading}
+                            >
+                                {densityLoading ? "Stopping..." : "⏹ Stop & Get Result"}
+                            </Button>
+                        </div>
+                    )}
+
+                    {/* Density Result */}
+                    {densityResult && (
+                        <div className="space-y-3">
+                            <div className="text-center">
+                                <div className={`inline-block px-4 py-2 rounded-lg text-white font-bold text-lg ${DENSITY_COLORS[densityResult.density_level]}`}>
+                                    {densityResult.density_label}
+                                </div>
+                                <div className="mt-1 text-2xl font-bold">
+                                    {densityResult.flow_rate.toFixed(1)} <span className="text-sm font-normal">xe/giờ</span>
+                                </div>
+                                <div className="text-xs text-muted-foreground">
+                                    {densityResult.density_percentage.toFixed(1)}% so với trung bình
+                                </div>
+                            </div>
+
+                            <div className="bg-secondary rounded-lg p-3 space-y-1 text-xs">
+                                <div className="flex justify-between">
+                                    <span className="text-muted-foreground">Total Vehicles:</span>
+                                    <span className="font-bold">{densityResult.total_vehicles}</span>
+                                </div>
+                                <div className="flex justify-between">
+                                    <span className="text-muted-foreground">Hourly Average:</span>
+                                    <span>{densityResult.hourly_average.toFixed(1)} xe/giờ</span>
+                                </div>
+                                <div className="flex justify-between">
+                                    <span className="text-muted-foreground">Duration:</span>
+                                    <span>{densityResult.duration_minutes} min</span>
+                                </div>
+                            </div>
+
+                            {Object.keys(densityResult.vehicle_breakdown).length > 0 && (
+                                <div className="flex flex-wrap gap-1">
+                                    {Object.entries(densityResult.vehicle_breakdown).map(([type, count]) => (
+                                        <span key={type} className="text-xs bg-background/50 px-2 py-0.5 rounded capitalize">
+                                            {VEHICLE_ICONS[type] || "🚗"} {count}
+                                        </span>
+                                    ))}
+                                </div>
+                            )}
+
+                            <div className="flex gap-2">
+                                <Button
+                                    className="flex-1"
+                                    variant="outline"
+                                    size="sm"
+                                    onClick={() => {
+                                        const dataStr = JSON.stringify(densityResult, null, 2);
+                                        const blob = new Blob([dataStr], { type: "application/json" });
+                                        const url = URL.createObjectURL(blob);
+                                        const a = document.createElement("a");
+                                        a.href = url;
+                                        a.download = `density_${cameraId}_${new Date().toISOString().slice(0, 10)}.json`;
+                                        a.click();
+                                        URL.revokeObjectURL(url);
+                                    }}
+                                >
+                                    📄 JSON
+                                </Button>
+                                <Button
+                                    className="flex-1"
+                                    variant="outline"
+                                    size="sm"
+                                    onClick={() => setDensityResult(null)}
+                                >
+                                    🔄 Again
+                                </Button>
+                            </div>
+                        </div>
+                    )}
+
+                    {densityError && (
+                        <div className="p-2 bg-red-500/20 border border-red-500 rounded text-red-400 text-xs">
+                            {densityError}
+                        </div>
+                    )}
                 </div>
             )}
         </div>

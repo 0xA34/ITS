@@ -60,6 +60,7 @@ export interface ZonePolygon {
   linked_traffic_light_id: string | null;
   is_counting_line?: boolean;
   counting_direction?: string;
+  is_ignore_zone?: boolean;
   color: string;
 }
 
@@ -105,6 +106,77 @@ export interface TrafficStats {
   total_vehicles: number;
   parking_violations: ParkingViolation[];
   zones_occupancy: Record<string, number>;
+}
+
+// ==================== TRAFFIC DENSITY API ====================
+
+export interface TrafficDensityConfig {
+  duration_minutes: number;
+}
+
+export interface TrafficDensityResult {
+  camera_id: string;
+  start_time: string;
+  end_time: string;
+  duration_minutes: number;
+  hour: number;
+  total_vehicles: number;
+  flow_rate: number;  // q = n/t (vehicles per hour)
+  hourly_average: number;
+  density_percentage: number;
+  density_level: "heavy" | "medium" | "light";
+  density_label: string;
+  vehicle_breakdown: Record<string, number>;
+}
+
+export interface TrafficDensityStatus {
+  is_tracking: boolean;
+  current_count: number;
+  elapsed_minutes: number;
+  duration_minutes: number;
+  hour: number;
+}
+
+export async function startDensityTracking(
+  cameraId: string,
+  config: TrafficDensityConfig,
+): Promise<{ success: boolean }> {
+  const response = await fetch(
+    `${API_BASE}/api/detection/density/${encodeURIComponent(cameraId)}/start`,
+    {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(config),
+    },
+  );
+  if (!response.ok) {
+    const error = await response.json();
+    throw new Error(error.detail || "Failed to start tracking");
+  }
+  return response.json();
+}
+
+export async function stopDensityTracking(
+  cameraId: string,
+): Promise<TrafficDensityResult> {
+  const response = await fetch(
+    `${API_BASE}/api/detection/density/${encodeURIComponent(cameraId)}/stop`,
+    { method: "POST" },
+  );
+  if (!response.ok) {
+    const error = await response.json();
+    throw new Error(error.detail || "Failed to stop tracking");
+  }
+  return response.json();
+}
+
+export async function getDensityStatus(
+  cameraId: string,
+): Promise<TrafficDensityStatus> {
+  const response = await fetch(
+    `${API_BASE}/api/detection/density/${encodeURIComponent(cameraId)}/status`,
+  );
+  return response.json();
 }
 //////////////// search
 export type SearchSyncResponse = {

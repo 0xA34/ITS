@@ -13,12 +13,16 @@ from app.models.detection import (
     TrafficStats,
     ZoneConfig,
     ZonePolygon,
+    TrafficDensityConfig,
+    TrafficDensityResult,
+    TrafficDensityStatus,
 )
 from app.services.detection_service import DetectionService
 from app.services.tracker_service import TrackerManager
 from app.services.zone_service import ZoneService
 from app.services.model_manager import get_model_manager
 from app.services.counting_service import CountingManager
+from app.services.traffic_density_service import TrafficDensityManager, filter_detections_by_ignore_zones
 from fastapi import APIRouter, HTTPException, WebSocket, WebSocketDisconnect
 from fastapi.responses import JSONResponse
 
@@ -358,6 +362,17 @@ async def video_detection_stream(websocket: WebSocket, camera_id: str):
             )
 
             if result:
+                # Filter out detections in ignore zones (hide them completely)
+                result.detections = filter_detections_by_ignore_zones(
+                    result.detections, zones
+                )
+                result.total_count = len(result.detections)
+                # Recalculate vehicle_count after filtering
+                vehicle_count = {}
+                for det in result.detections:
+                    vehicle_count[det.class_name] = vehicle_count.get(det.class_name, 0) + 1
+                result.vehicle_count = vehicle_count
+
                 # Auto-detect traffic light color for each zone
                 for zone in zones:
                     if zone.is_traffic_light:
@@ -385,6 +400,11 @@ async def video_detection_stream(websocket: WebSocket, camera_id: str):
                 counting_manager = CountingManager.get_instance(camera_id)
                 counting_records, line_counts = counting_manager.update(
                     result.detections, counting_lines
+                )
+
+                # Track vehicles for density calculation (skip those in ignore zones)
+                density_count = TrafficDensityManager.track_vehicles(
+                    camera_id, result.detections, zones
                 )
 
                 violation_ids = set(v.track_id for v in violations)
@@ -603,3 +623,57 @@ async def clear_counting(camera_id: str):
     """Clear all counting data for a camera."""
     CountingManager.reset(camera_id)
     return {"success": True, "message": f"Counting data cleared for camera {camera_id}"}
+
+
+# ==================== TRAFFIC DENSITY ENDPOINTS ====================
+
+@router.post("/density/{camera_id}/start")
+async def start_density_tracking(camera_id: str, config: TrafficDensityConfig):
+    """Start traffic density tracking for a camera."""
+    if TrafficDensityManager.is_tracking(camera_id):
+        raise HTTPException(status_code=400, detail="Density tracking already active")
+
+    TrafficDensityManager.start_tracking(
+        camera_id=camera_id,
+        duration_minutes=config.duration_minutes
+    )
+    return {
+        "success": True,
+        "message": f"Density tracking started for camera {camera_id}",
+        "config": config.model_dump()
+    }
+
+
+@router.get("/density/{camera_id}/status", response_model=TrafficDensityStatus)
+async def get_density_status(camera_id: str):
+    """Get current traffic density tracking status."""
+    status = TrafficDensityManager.get_status(camera_id)
+    return TrafficDensityStatus(**status)
+
+
+@router.post("/density/{camera_id}/stop", response_model=TrafficDensityResult)
+async def stop_density_tracking(camera_id: str):
+    """Stop traffic density tracking and return result."""
+    result = TrafficDensityManager.stop_tracking(camera_id)
+    if result is None:
+        raise HTTPException(status_code=404, detail="No active density tracking found")
+    return TrafficDensityResult(**result)
+
+
+@router.get("/density/{camera_id}/report", response_model=TrafficDensityResult)
+async def get_density_report(camera_id: str):
+    """Get traffic density report without stopping tracking."""
+    tracker = TrafficDensityManager.get_tracker(camera_id)
+    if tracker is None:
+        raise HTTPException(status_code=404, detail="No active density tracking found")
+
+    result = tracker.calculate_density()
+    return TrafficDensityResult(**result)
+
+
+@router.delete("/density/{camera_id}")
+async def reset_density_tracking(camera_id: str):
+    """Reset/cancel density tracking for a camera."""
+    TrafficDensityManager.reset(camera_id)
+    return {"success": True, "message": f"Density tracking reset for camera {camera_id}"}
+
