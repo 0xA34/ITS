@@ -1,60 +1,96 @@
-# FRONT-END
+# Vehicle Detection & Monitoring
 
-Follow these steps:
+A real-time traffic monitoring and analysis system that uses YOLO-based object detection to track vehicles, detect violations, and measure traffic density from camera feeds.
 
-```sh
-# Step 1: Clone the repository using the project's Git URL.
-git clone <YOUR_GIT_URL>
+## Features
 
-# Step 2: Navigate to the project directory.
-cd <frontend>
+- **Real-time Vehicle Detection** - Detect and track vehicles using YOLO v8/v12 models with IOU-based tracking
+- **Zone-based Monitoring** - Define custom zones for parking, traffic lights, stop lines, and counting
+- **Violation Detection** - Automatic detection of parking violations and red light violations
+- **Line Counting** - Count vehicles crossing defined lines with directional tracking
+- **Traffic Density Analysis** - Measure traffic flow with historical hourly comparisons
+- **Multi-camera Support** - Monitor multiple camera feeds simultaneously
+- **Model Benchmarking** - Compare and evaluate different YOLO models
 
-# Step 3: Install the necessary dependencies.
-npm install / bun install
+## Tech Stack
 
-# Step 4: Start the development server with auto-reloading and an instant preview.
-npm run dev / bun run dev
-```
-# BACK-END
-```sh
-# Step 1: Clone the repository using the project's Git URL.
-git clone <YOUR_GIT_URL>
-
-# Step 2: Navigate to the project directory.
-cd <backend>
-
-# Step 3: Install 
-pip install -r requirements.txt
-
-# Step 4 run backend
-fastapi dev main.py
-
-uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
-
-```
-
-**Edit a file directly in GitHub**
-
-- Navigate to the desired file(s).
-- Click the "Edit" button (pencil icon) at the top right of the file view.
-- Make your changes and commit the changes.
-
-**Use GitHub Codespaces**
-
-- Navigate to the main page of your repository.
-- Click on the "Code" button (green button) near the top right.
-- Select the "Codespaces" tab.
-- Click on "New codespace" to launch a new Codespace environment.
-- Edit files directly within the Codespace and commit and push your changes once you're done.
-
-## What technologies are used for this project?
-
-This project is built with:
-
+### Frontend
+- React + TypeScript
 - Vite
-- TypeScript
-- React
-- shadcn-ui
 - Tailwind CSS
+- shadcn/ui
 
+### Backend
+- FastAPI (Python)
+- Ultralytics YOLO
+- OpenCV
+- SimpleTracker (IOU-based object tracking)
 
+## Getting Started
+
+### Prerequisites
+
+- Node.js 18+ or Bun
+- Python 3.11
+- CUDA-compatible GPU (recommended for real-time detection)
+
+### Frontend Setup
+
+```sh
+cd frontend
+npm install
+npm run dev
+```
+
+Or with Bun:
+
+```sh
+cd frontend
+bun install
+bun run dev
+```
+
+The frontend will be available at `http://localhost:8080`
+
+### Backend Setup
+
+```sh
+cd backend
+pip install -r requirements.txt
+uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
+```
+
+The API will be available at `http://localhost:8000`
+
+## Project Structure
+
+```
+ITS/
+├── frontend/           # React frontend application
+│   ├── src/
+│   │   ├── components/ # UI components
+│   │   ├── pages/      # Page components
+│   │   └── lib/        # API client and utilities
+│   └── ...
+├── backend/            # FastAPI backend
+│   └── app/
+│       ├── routes/     # API endpoints
+│       ├── services/   # Business logic
+│       ├── models/     # Data models
+│       └── data/       # Camera and zone configurations
+└── ARCHITECTURE.md     # Detailed system architecture
+```
+
+## API Documentation
+
+Once the backend is running, visit `http://localhost:8000/docs` for the interactive Swagger documentation.
+
+## Configuration
+
+- Camera list: `backend/app/data/cameras.csv`
+- Zone configurations: stored per camera in `backend/app/data/zones/`
+- YOLO models: place `.pt` files in `backend/app/preTrainedModels/`
+
+## License
+
+This project is for educational and research purposes.

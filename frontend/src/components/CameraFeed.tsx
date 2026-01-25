@@ -153,15 +153,7 @@ export default function CameraFeed({ camera, refreshMs = 12000 }: CameraFeedProp
           />
         )}
 
-        <div className="absolute top-2 right-2">
-          <Button
-            size="sm"
-            onClick={handleOpenDetection}
-            className="bg-primary/90 hover:bg-primary text-xs shadow-lg"
-          >
-            🔍 Detect
-          </Button>
-        </div>
+
       </div>
 
       <div className="bg-card p-3 border-t border-border">
