@@ -7,5 +7,6 @@
 /.idea/vcs.xml
 /.idea/workspace.xml
 /backend/app/baseline
-/backend/app/baseline/results
+/backend/results
+/backend/scripts
 /.vs
