@@ -23,6 +23,7 @@ from app.services.zone_service import ZoneService
 from app.services.model_manager import get_model_manager
 from app.services.counting_service import CountingManager
 from app.services.traffic_density_service import TrafficDensityManager, filter_detections_by_ignore_zones
+from app.services.violation_storage_service import ViolationStorageService
 from fastapi import APIRouter, HTTPException, WebSocket, WebSocketDisconnect
 from fastapi.responses import JSONResponse
 
@@ -563,6 +564,29 @@ async def video_detection_stream(websocket: WebSocket, camera_id: str):
                         (0, 0, 0),
                         2,
                     )
+
+                # Save violations to storage (after frame has been annotated)
+                # Save parking violations
+                if violations:
+                    for violation in violations:
+                        asyncio.create_task(
+                            ViolationStorageService.save_parking_violation(
+                                violation=violation,
+                                camera_id=camera_id,
+                                annotated_frame=frame.copy(),
+                            )
+                        )
+                
+                # Save red light violations
+                if red_light_violations:
+                    for violation in red_light_violations:
+                        asyncio.create_task(
+                            ViolationStorageService.save_red_light_violation(
+                                violation=violation,
+                                camera_id=camera_id,
+                                annotated_frame=frame.copy(),
+                            )
+                        )
 
                 response_data = {
                     "type": "detection_result",
