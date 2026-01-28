@@ -12,6 +12,11 @@ preTrainedModels/*.zip
 *.pt
 *.onnx
 *.engine
+app/backend/app/baseline
+app/backend/results
+app/backend/scripts
+app/.vs
+
 
 # Zone data (user-specific)
 app/data/zones/*.json

@@ -33,6 +33,12 @@ class Settings(BaseSettings):
     OUTPUT_DIR: str = _norm("app/tmp/outputs")
     JOB_TTL_SECONDS: int = 3600
 
+    # Violation Storage Settings
+    SAVE_VIOLATIONS: bool = True
+    SAVE_VIOLATION_FRAMES: bool = True
+    VIOLATION_DATA_DIR: str = _norm("app/data/violations")
+    MAX_VIOLATIONS_PER_CAMERA: int = 1000
+
 
 settings = Settings()
 
@@ -47,3 +53,4 @@ def _ensure_dir(path: str) -> None:
 _ensure_dir(settings.ZONES_DIR)
 _ensure_dir(settings.UPLOAD_DIR)
 _ensure_dir(settings.OUTPUT_DIR)
+_ensure_dir(settings.VIOLATION_DATA_DIR)
