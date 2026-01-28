@@ -9,7 +9,6 @@ A real-time traffic monitoring and analysis system that uses YOLO-based object d
 - **Violation Detection** - Automatic detection of parking violations and red light violations
 - **Line Counting** - Count vehicles crossing defined lines with directional tracking
 - **Traffic Density Analysis** - Measure traffic flow with historical hourly comparisons
-- **Multi-camera Support** - Monitor multiple camera feeds simultaneously
 - **Model Benchmarking** - Compare and evaluate different YOLO models
 
 ## Tech Stack
@@ -31,7 +30,7 @@ A real-time traffic monitoring and analysis system that uses YOLO-based object d
 ### Prerequisites
 
 - Node.js 18+ or Bun
-- Python 3.11
+- Python 3.11.9
 - CUDA-compatible GPU (recommended for real-time detection)
 
 ### Frontend Setup
@@ -78,7 +77,6 @@ ITS/
 │       ├── services/   # Business logic
 │       ├── models/     # Data models
 │       └── data/       # Camera and zone configurations
-└── ARCHITECTURE.md     # Detailed system architecture
 ```
 
 ## API Documentation
@@ -87,9 +85,10 @@ Once the backend is running, visit `http://localhost:8000/docs` for the interact
 
 ## Configuration
 
-- Camera list: `backend/app/data/cameras.csv`
+- Camera list: `backend/app/data/ITS.link.json`
 - Zone configurations: stored per camera in `backend/app/data/zones/`
 - YOLO models: place `.pt` files in `backend/app/preTrainedModels/`
+- Violation Storage: stored in `backend/app/data/violations/`
 
 ## License
 
