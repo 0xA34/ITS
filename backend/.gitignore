@@ -12,17 +12,11 @@ preTrainedModels/*.zip
 *.pt
 *.onnx
 *.engine
-<<<<<<< Updated upstream
+
 app/results
 app/scripts
 app/data/violations
 app/data/density
-=======
-app/baseline
-app/results
-app/backend/scripts
-app/data/violations
->>>>>>> Stashed changes
 app/.vs
 
 
