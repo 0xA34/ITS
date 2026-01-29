@@ -8,6 +8,7 @@ from app.routes.benchmark_routes import router as benchmark_router
 from app.routes.search_routes import router as search_router
 from app.routes.media_routes import router as media_router
 from app.routes.upload_detect_routes import router as upload_detect_router
+from app.routes.violation_routes import router as violation_router
 
 
 app = FastAPI(
@@ -41,3 +42,4 @@ app.include_router(benchmark_router, prefix=settings.API_PREFIX)
 app.include_router(search_router, prefix=settings.API_PREFIX)
 app.include_router(media_router, prefix=settings.API_PREFIX)
 app.include_router(upload_detect_router, prefix=settings.API_PREFIX)
+app.include_router(violation_router, prefix=settings.API_PREFIX)
